@@ -18,7 +18,8 @@ namespace IndirectSerial {
 
         private UInt64 timeout = 100;
 
-        private Timer poolTimer = new Timer { Interval = 50 };
+        private Timer dataTimer = new Timer { Interval = 10 };
+        private Timer signalTimer = new Timer { Interval = 5 };
 
         private UInt32 aLineBytes = 0, bLineBytes;
         private UInt64 lastPrint_ms;
@@ -29,6 +30,8 @@ namespace IndirectSerial {
 
         private Stopwatch millisSw = new Stopwatch();
 
+        private volatile Boolean lastADsr, lastACts, lastBDsr, lastBCts;
+        private Boolean linkedSignal = false, linkedData = false;
         public FrmMain() {
             InitializeComponent();
             ABaud.Text = portA.BaudRate.ToString();
@@ -43,13 +46,19 @@ namespace IndirectSerial {
             APortList.SelectedIndex = 0;
             BPortList.SelectedIndex = 0;
 
+            LinkSignal.Checked = linkedSignal;
+            LinkData.Checked = linkedData;
+
             TimeoutNewlineCount.Text = timeout.ToString();
             BytesNewlineCount.Text = newlineBytes.ToString();
 
             millisSw.Start();
 
-            poolTimer.Tick += (Object sender, EventArgs e) => {
+            dataTimer.Tick += (Object sender, EventArgs e) => {
+                dataTimer.Stop();
+
                 UInt64 current_ms = (UInt64)millisSw.ElapsedMilliseconds;
+                StringBuilder newContent = new StringBuilder(String.Empty);
 
                 if (TimeoutNewlineEnable.Checked
                 && (current_ms >= lastPrint_ms + timeout)) {
@@ -67,6 +76,7 @@ namespace IndirectSerial {
                     if (!printingA &&
                     (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && Content.Text.EndsWith("0A")))) {
                         Content.AppendText("\n");
+
                         aLineBytes = 0;
                         bLineBytes = 0;
 
@@ -79,7 +89,7 @@ namespace IndirectSerial {
 
                         if (BytesNewlineEnable.Checked
                         && aLineBytes >= newlineBytes) {
-                            if (!Content.Text.EndsWith("\n"))
+                            if (!Content.Text.EndsWith("\n") && !newContent.ToString().EndsWith("\n"))
                                 Content.AppendText("\n");
                             aLineBytes = 0;
                             bLineBytes = 0;
@@ -88,7 +98,7 @@ namespace IndirectSerial {
                         if (aLineBytes == 0) {
                             if (Timestamp.Checked)
                                 Content.AppendText($"{GetTimeString()} ", Color.Gray);
-                            Content.AppendText(LinkAB.Checked ? "A->B " : "A->PC ", Color.DarkGray);
+                            Content.AppendText(linkedData ? "A->B " : "A->PC ", Color.DarkGray);
                             aLineBytes = 0;
                             bLineBytes = 0;
                         }
@@ -98,37 +108,45 @@ namespace IndirectSerial {
                         lastPrint_ms = current_ms;
 
                         if (DisplayAsHex.Checked)
-                            Content.AppendText(String.Format("{0:X2} ", c), Color.Red);
+                            //Content.AppendText(String.Format("{0:X2} ", c), Color.Red);
+                            newContent.AppendFormat("{0:X2} ", c);
                         else {
-                            if ((c >= 0x20 && c <= 0x7E) || c == '\n' || c == '\r')
-                                Content.AppendText(((Char)c).ToString(), Color.Red);
+                            if ((c >= 0x20 && c <= 0x7E) || c == '\n')
+                                //Content.AppendText(((Char)c).ToString(), Color.Red);
+                                newContent.Append(((Char)c).ToString());
                             else
-                                Content.AppendText(String.Format("[{0:X2}]", c), Color.Red);
+                                //Content.AppendText(String.Format("[{0:X2}]", c), Color.Red);
+                                newContent.AppendFormat("[{0:X2}]", c);
                         }
 
-                        if ((c == '\n' || c == '\r') && DisplayAsText.Checked) {
+                        if ((c == '\n') && DisplayAsText.Checked) {
                             aLineBytes = 0;
                             bLineBytes = 0;
                         }
                     }
                     if (DisplayAsHex.Checked) {
-                        Content.AppendText("\n");
+                        //Content.AppendText("\n");
+                        newContent.Append("\n");
                         aLineBytes = 0;
                         bLineBytes = 0;
                     }
 
-                    ScrollToLast();
-                    if (portB.IsOpen && LinkAB.Checked) {
+                    if (portB.IsOpen && linkedData) {
                         Byte[] array = AReceivedBytes.ToArray();
                         portB.BaseStream.Write(array, 0, array.Length);
                     }
                     AReceivedBytes.Clear();
+                    Content.AppendText(newContent.ToString(), Color.Red);
+                    ScrollToLast();
+
+                    dataTimer.Start();
                     return;
                 }
 
                 if (portB.IsOpen && portB.BytesToRead > 0) {
                     if (printingA && (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && Content.Text.EndsWith("0A")))) {
                         Content.AppendText("\n");
+
                         aLineBytes = 0;
                         bLineBytes = 0;
 
@@ -141,9 +159,7 @@ namespace IndirectSerial {
 
                         if (BytesNewlineEnable.Checked
                         && bLineBytes >= newlineBytes) {
-                            Char lastChar = Content.TextLength > 0 ? Content.Text[Content.Text.Length - 1] : '\0';
-
-                            if (lastChar != '\n')
+                            if (!Content.Text.EndsWith("\n") && !newContent.ToString().EndsWith("\n"))
                                 Content.AppendText("\n");
                             bLineBytes = 0;
                             aLineBytes = 0;
@@ -152,7 +168,7 @@ namespace IndirectSerial {
                         if (bLineBytes == 0) {
                             if (Timestamp.Checked)
                                 Content.AppendText($"{GetTimeString()} ", Color.Gray);
-                            Content.AppendText(LinkAB.Checked ? "B->A " : "B->PC ", Color.DarkGray);
+                            Content.AppendText(linkedData ? "B->A " : "B->PC ", Color.DarkGray);
                             bLineBytes = 0;
                             aLineBytes = 0;
                         }
@@ -162,36 +178,87 @@ namespace IndirectSerial {
                         lastPrint_ms = current_ms;
 
                         if (DisplayAsHex.Checked)
-                            Content.AppendText(String.Format("{0:X2} ", c), Color.Blue);
+                            newContent.AppendFormat("{0:X2} ", c);
                         else {
-                            if ((c >= 0x20 && c <= 0x7E) || c == '\n' || c == '\r')
-                                Content.AppendText(((Char)c).ToString(), Color.Blue);
+                            if ((c >= 0x20 && c <= 0x7E) || c == '\n')
+                                newContent.Append(((Char)c).ToString());
                             else
-                                Content.AppendText(String.Format("[{0:X2}]", c), Color.Blue);
+                                newContent.AppendFormat("[{0:X2}]", c);
                         }
 
-                        if ((c == '\n' || c == '\r') && DisplayAsText.Checked) {
+                        if ((c == '\n') && DisplayAsText.Checked) {
                             aLineBytes = 0;
                             bLineBytes = 0;
                         }
                     }
                     if (DisplayAsHex.Checked) {
-                        Content.AppendText("\n");
+                        newContent.Append("\n");
                         aLineBytes = 0;
                         bLineBytes = 0;
                     }
 
-                    ScrollToLast();
-                    if (portA.IsOpen && LinkAB.Checked) {
+
+                    if (portA.IsOpen && linkedData) {
                         Byte[] array = BReceivedBytes.ToArray();
                         portA.BaseStream.Write(array, 0, array.Length);
                     }
                     BReceivedBytes.Clear();
+                    Content.AppendText(newContent.ToString(), Color.Blue);
+                    ScrollToLast();
+
+                    dataTimer.Start();
                     return;
+                }
+
+                dataTimer.Start();
+            };
+
+            signalTimer.Tick += (Object sender, EventArgs e) => {
+                Boolean aCts = portA.IsOpen ? portA.CtsHolding : false,
+                aDsr = portA.IsOpen ? portA.DsrHolding : false,
+                bCts = portB.IsOpen ? portB.CtsHolding : false,
+                bDsr = portB.IsOpen ? portB.DsrHolding : false;
+
+                if (aDsr != lastADsr) {
+                    if (portB.IsOpen && linkedSignal) {
+                        portB.DtrEnable = aDsr;
+                        BDtr.Checked = aDsr;
+                    }
+
+                    lastADsr = aDsr;
+                    ADsr.Checked = aDsr;
+                }
+                if (aCts != lastACts) {
+                    if (portB.IsOpen && linkedSignal) {
+                        portB.RtsEnable = aCts;
+                        BRts.Checked = aCts;
+                    }
+
+                    lastACts = aCts;
+                    ACts.Checked = aCts;
+                }
+                if (bDsr != lastBDsr) {
+                    if (portA.IsOpen && linkedSignal) {
+                        portA.DtrEnable = bDsr;
+                        ADtr.Checked = bDsr;
+                    }
+
+                    lastBDsr = bDsr;
+                    BDsr.Checked = bDsr;
+                }
+                if (bCts != lastBCts) {
+                    if (portA.IsOpen && linkedSignal) {
+                        portA.RtsEnable = bCts;
+                        ARts.Checked = bCts;
+                    }
+
+                    lastBCts = bCts;
+                    BCts.Checked = bCts;
                 }
             };
 
-            poolTimer.Start();
+            signalTimer.Start();
+            dataTimer.Start();
         }
 
         private void ScrollToLast() {
@@ -201,7 +268,7 @@ namespace IndirectSerial {
             }
         }
 
-        private String GetTimeString() => DateTime.Now.ToString("HH:mm:ss.ff");
+        private String GetTimeString() => DateTime.Now.ToString("HH:mm:ss.fff");
 
         private Byte[] HexStringToArray(String text) {
             List<Byte> args = new List<Byte>();
@@ -211,12 +278,12 @@ namespace IndirectSerial {
 
             String rgx = String.Format("{0}[0-9A-F]{{1,2}}", prefix);
             //MatchCollection match = Regex.Matches(text, "h[0-9A-F]{1,2}\\s?"); // include space
-            MatchCollection match = Regex.Matches(text, rgx);
+            MatchCollection matches = Regex.Matches(text, rgx);
 
-            for (Int32 i = 0; i < match.Count; ++i) {
-                Byte c = Byte.Parse(Regex.Match(match[i].ToString(), @"\d+").Value, System.Globalization.NumberStyles.HexNumber);
+            for (Int32 i = 0; i < matches.Count; ++i) {
+                Byte c = Byte.Parse(Regex.Match(matches[i].ToString(), @"\d+").Value, System.Globalization.NumberStyles.HexNumber);
                 args.Add(c);
-                text = text.Replace(match[i].ToString(), ((Char)0).ToString());
+                text = text.ReplaceFirst(matches[i].ToString(), ((Char)0).ToString());
             }
 
             Int32 argsCount = 0;
@@ -439,6 +506,49 @@ namespace IndirectSerial {
 
             if (portB.IsOpen) portB.Close();
         }
+
+        private void LinkSignal_CheckedChanged(Object sender, EventArgs e) {
+            linkedSignal = LinkSignal.Checked;
+
+            Boolean aCts = portA.IsOpen ? portA.CtsHolding : false,
+            aDsr = portA.IsOpen ? portA.DsrHolding : false,
+            bCts = portB.IsOpen ? portB.CtsHolding : false,
+            bDsr = portB.IsOpen ? portB.DsrHolding : false;
+
+            if (portB.IsOpen && linkedSignal) {
+                portB.DtrEnable = aDsr;
+                BDtr.Checked = aDsr;
+            }
+
+            lastADsr = aDsr;
+            ADsr.Checked = aDsr;
+
+            if (portB.IsOpen && linkedSignal) {
+                portB.RtsEnable = aCts;
+                BRts.Checked = aCts;
+            }
+
+            lastACts = aCts;
+            ACts.Checked = aCts;
+
+            if (portA.IsOpen && linkedSignal) {
+                portA.DtrEnable = bDsr;
+                ADtr.Checked = bDsr;
+            }
+
+            lastBDsr = bDsr;
+            BDsr.Checked = bDsr;
+
+            if (portA.IsOpen && linkedSignal) {
+                portA.RtsEnable = bCts;
+                ARts.Checked = bCts;
+            }
+
+            lastBCts = bCts;
+            BCts.Checked = bCts;
+        }
+
+        private void LinkData_CheckedChanged(Object sender, EventArgs e) => linkedData = LinkData.Checked;
 
         private void ClearDisplay_Click(Object sender, EventArgs e) => Content.Clear();
 

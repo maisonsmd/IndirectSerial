@@ -27,12 +27,15 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.ABaud = new System.Windows.Forms.ComboBox();
             this.APortList = new System.Windows.Forms.ComboBox();
-            this.LinkAB = new System.Windows.Forms.CheckBox();
+            this.LinkSignal = new System.Windows.Forms.CheckBox();
+            this.LinkData = new System.Windows.Forms.CheckBox();
             this.ClearDisplay = new System.Windows.Forms.Button();
             this.AClearHistory = new System.Windows.Forms.Button();
             this.ASend = new System.Windows.Forms.Button();
+            this.ACts = new System.Windows.Forms.CheckBox();
             this.AInput = new System.Windows.Forms.ComboBox();
             this.DisplayAsHex = new System.Windows.Forms.RadioButton();
+            this.ADsr = new System.Windows.Forms.CheckBox();
             this.DisplayAsText = new System.Windows.Forms.RadioButton();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
@@ -49,7 +52,6 @@
             this.AppendNewlineEnable = new System.Windows.Forms.CheckBox();
             this.HexPrefixEnable = new System.Windows.Forms.CheckBox();
             this.ADtr = new System.Windows.Forms.CheckBox();
-            this.label3 = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.BBaud = new System.Windows.Forms.ComboBox();
             this.BPortList = new System.Windows.Forms.ComboBox();
@@ -58,7 +60,9 @@
             this.BInput = new System.Windows.Forms.ComboBox();
             this.BClose = new System.Windows.Forms.Button();
             this.BOpen = new System.Windows.Forms.Button();
+            this.BCts = new System.Windows.Forms.CheckBox();
             this.BRts = new System.Windows.Forms.CheckBox();
+            this.BDsr = new System.Windows.Forms.CheckBox();
             this.BDtr = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -72,10 +76,10 @@
             this.Content.BackColor = System.Drawing.SystemColors.ControlLightLight;
             this.Content.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.Content.Font = new System.Drawing.Font("Consolas", 12F);
-            this.Content.Location = new System.Drawing.Point(7, 122);
+            this.Content.Location = new System.Drawing.Point(7, 129);
             this.Content.Name = "Content";
             this.Content.ReadOnly = true;
-            this.Content.Size = new System.Drawing.Size(679, 315);
+            this.Content.Size = new System.Drawing.Size(690, 191);
             this.Content.TabIndex = 16;
             this.Content.TabStop = false;
             this.Content.Text = "";
@@ -87,12 +91,15 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.Controls.Add(this.ABaud);
             this.groupBox1.Controls.Add(this.APortList);
-            this.groupBox1.Controls.Add(this.LinkAB);
+            this.groupBox1.Controls.Add(this.LinkSignal);
+            this.groupBox1.Controls.Add(this.LinkData);
             this.groupBox1.Controls.Add(this.ClearDisplay);
             this.groupBox1.Controls.Add(this.AClearHistory);
             this.groupBox1.Controls.Add(this.ASend);
+            this.groupBox1.Controls.Add(this.ACts);
             this.groupBox1.Controls.Add(this.AInput);
             this.groupBox1.Controls.Add(this.DisplayAsHex);
+            this.groupBox1.Controls.Add(this.ADsr);
             this.groupBox1.Controls.Add(this.DisplayAsText);
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.label1);
@@ -110,10 +117,9 @@
             this.groupBox1.Controls.Add(this.HexPrefixEnable);
             this.groupBox1.Controls.Add(this.ADtr);
             this.groupBox1.Controls.Add(this.Content);
-            this.groupBox1.Controls.Add(this.label3);
-            this.groupBox1.Location = new System.Drawing.Point(14, 15);
+            this.groupBox1.Location = new System.Drawing.Point(6, 12);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(694, 514);
+            this.groupBox1.Size = new System.Drawing.Size(705, 397);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "PORT A";
@@ -149,23 +155,34 @@
             this.APortList.TabIndex = 1;
             this.APortList.DropDown += new System.EventHandler(this.APortList_DropDown);
             // 
-            // LinkAB
+            // LinkSignal
             // 
-            this.LinkAB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.LinkAB.AutoSize = true;
-            this.LinkAB.Location = new System.Drawing.Point(315, 86);
-            this.LinkAB.Name = "LinkAB";
-            this.LinkAB.Size = new System.Drawing.Size(102, 20);
-            this.LinkAB.TabIndex = 13;
-            this.LinkAB.Text = "Link A <-> B";
-            this.LinkAB.UseVisualStyleBackColor = true;
+            this.LinkSignal.AutoSize = true;
+            this.LinkSignal.Location = new System.Drawing.Point(315, 104);
+            this.LinkSignal.Name = "LinkSignal";
+            this.LinkSignal.Size = new System.Drawing.Size(103, 20);
+            this.LinkSignal.TabIndex = 13;
+            this.LinkSignal.Text = "Link Signals";
+            this.LinkSignal.UseVisualStyleBackColor = true;
+            this.LinkSignal.CheckedChanged += new System.EventHandler(this.LinkSignal_CheckedChanged);
+            // 
+            // LinkData
+            // 
+            this.LinkData.AutoSize = true;
+            this.LinkData.Location = new System.Drawing.Point(315, 78);
+            this.LinkData.Name = "LinkData";
+            this.LinkData.Size = new System.Drawing.Size(87, 20);
+            this.LinkData.TabIndex = 13;
+            this.LinkData.Text = "Link Data";
+            this.LinkData.UseVisualStyleBackColor = true;
+            this.LinkData.CheckedChanged += new System.EventHandler(this.LinkData_CheckedChanged);
             // 
             // ClearDisplay
             // 
             this.ClearDisplay.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.ClearDisplay.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.ClearDisplay.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.ClearDisplay.Location = new System.Drawing.Point(373, 479);
+            this.ClearDisplay.Location = new System.Drawing.Point(384, 362);
             this.ClearDisplay.Name = "ClearDisplay";
             this.ClearDisplay.Size = new System.Drawing.Size(111, 29);
             this.ClearDisplay.TabIndex = 21;
@@ -178,7 +195,7 @@
             this.AClearHistory.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.AClearHistory.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.AClearHistory.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.AClearHistory.Location = new System.Drawing.Point(490, 479);
+            this.AClearHistory.Location = new System.Drawing.Point(501, 362);
             this.AClearHistory.Name = "AClearHistory";
             this.AClearHistory.Size = new System.Drawing.Size(102, 29);
             this.AClearHistory.TabIndex = 22;
@@ -191,7 +208,7 @@
             this.ASend.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.ASend.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.ASend.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.ASend.Location = new System.Drawing.Point(600, 479);
+            this.ASend.Location = new System.Drawing.Point(611, 362);
             this.ASend.Name = "ASend";
             this.ASend.Size = new System.Drawing.Size(87, 29);
             this.ASend.TabIndex = 23;
@@ -199,22 +216,33 @@
             this.ASend.UseVisualStyleBackColor = false;
             this.ASend.Click += new System.EventHandler(this.ASend_Click);
             // 
+            // ACts
+            // 
+            this.ACts.AutoSize = true;
+            this.ACts.Enabled = false;
+            this.ACts.Location = new System.Drawing.Point(191, 102);
+            this.ACts.Name = "ACts";
+            this.ACts.Size = new System.Drawing.Size(55, 20);
+            this.ACts.TabIndex = 27;
+            this.ACts.Text = "CTS";
+            this.ACts.UseVisualStyleBackColor = true;
+            // 
             // AInput
             // 
             this.AInput.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.AInput.Font = new System.Drawing.Font("Consolas", 12F);
             this.AInput.FormattingEnabled = true;
-            this.AInput.Location = new System.Drawing.Point(8, 444);
+            this.AInput.Location = new System.Drawing.Point(8, 327);
             this.AInput.Name = "AInput";
-            this.AInput.Size = new System.Drawing.Size(678, 27);
+            this.AInput.Size = new System.Drawing.Size(689, 27);
             this.AInput.TabIndex = 17;
             this.AInput.KeyDown += new System.Windows.Forms.KeyEventHandler(this.AInput_KeyDown);
             // 
             // DisplayAsHex
             // 
             this.DisplayAsHex.AutoSize = true;
-            this.DisplayAsHex.Location = new System.Drawing.Point(224, 483);
+            this.DisplayAsHex.Location = new System.Drawing.Point(561, 104);
             this.DisplayAsHex.Name = "DisplayAsHex";
             this.DisplayAsHex.Size = new System.Drawing.Size(121, 20);
             this.DisplayAsHex.TabIndex = 20;
@@ -222,11 +250,22 @@
             this.DisplayAsHex.Text = "Display as HEX";
             this.DisplayAsHex.UseVisualStyleBackColor = true;
             // 
+            // ADsr
+            // 
+            this.ADsr.AutoSize = true;
+            this.ADsr.Enabled = false;
+            this.ADsr.Location = new System.Drawing.Point(130, 102);
+            this.ADsr.Name = "ADsr";
+            this.ADsr.Size = new System.Drawing.Size(56, 20);
+            this.ADsr.TabIndex = 26;
+            this.ADsr.Text = "DSR";
+            this.ADsr.UseVisualStyleBackColor = true;
+            // 
             // DisplayAsText
             // 
             this.DisplayAsText.AutoSize = true;
             this.DisplayAsText.Checked = true;
-            this.DisplayAsText.Location = new System.Drawing.Point(104, 483);
+            this.DisplayAsText.Location = new System.Drawing.Point(427, 104);
             this.DisplayAsText.Name = "DisplayAsText";
             this.DisplayAsText.Size = new System.Drawing.Size(120, 20);
             this.DisplayAsText.TabIndex = 19;
@@ -237,7 +276,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(496, 58);
+            this.label2.Location = new System.Drawing.Point(496, 54);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(26, 16);
             this.label2.TabIndex = 10;
@@ -254,7 +293,7 @@
             // 
             // Prefix
             // 
-            this.Prefix.Location = new System.Drawing.Point(612, 51);
+            this.Prefix.Location = new System.Drawing.Point(649, 25);
             this.Prefix.Name = "Prefix";
             this.Prefix.Size = new System.Drawing.Size(36, 23);
             this.Prefix.TabIndex = 12;
@@ -262,7 +301,7 @@
             // 
             // TimeoutNewlineCount
             // 
-            this.TimeoutNewlineCount.Location = new System.Drawing.Point(427, 55);
+            this.TimeoutNewlineCount.Location = new System.Drawing.Point(427, 51);
             this.TimeoutNewlineCount.Name = "TimeoutNewlineCount";
             this.TimeoutNewlineCount.Size = new System.Drawing.Size(61, 23);
             this.TimeoutNewlineCount.TabIndex = 10;
@@ -281,7 +320,7 @@
             this.TimeoutNewlineEnable.AutoSize = true;
             this.TimeoutNewlineEnable.Checked = true;
             this.TimeoutNewlineEnable.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.TimeoutNewlineEnable.Location = new System.Drawing.Point(315, 56);
+            this.TimeoutNewlineEnable.Location = new System.Drawing.Point(315, 52);
             this.TimeoutNewlineEnable.Name = "TimeoutNewlineEnable";
             this.TimeoutNewlineEnable.Size = new System.Drawing.Size(108, 20);
             this.TimeoutNewlineEnable.TabIndex = 9;
@@ -302,9 +341,9 @@
             // 
             this.AClose.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.AClose.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.AClose.Location = new System.Drawing.Point(223, 23);
+            this.AClose.Location = new System.Drawing.Point(223, 25);
             this.AClose.Name = "AClose";
-            this.AClose.Size = new System.Drawing.Size(85, 91);
+            this.AClose.Size = new System.Drawing.Size(85, 28);
             this.AClose.TabIndex = 6;
             this.AClose.Text = "close";
             this.AClose.UseVisualStyleBackColor = false;
@@ -313,9 +352,9 @@
             // AOpen
             // 
             this.AOpen.BackColor = System.Drawing.SystemColors.InactiveBorder;
-            this.AOpen.Location = new System.Drawing.Point(131, 23);
+            this.AOpen.Location = new System.Drawing.Point(131, 25);
             this.AOpen.Name = "AOpen";
-            this.AOpen.Size = new System.Drawing.Size(85, 91);
+            this.AOpen.Size = new System.Drawing.Size(85, 28);
             this.AOpen.TabIndex = 5;
             this.AOpen.Text = "open";
             this.AOpen.UseVisualStyleBackColor = false;
@@ -324,7 +363,7 @@
             // ARts
             // 
             this.ARts.AutoSize = true;
-            this.ARts.Location = new System.Drawing.Point(72, 94);
+            this.ARts.Location = new System.Drawing.Point(68, 102);
             this.ARts.Name = "ARts";
             this.ARts.Size = new System.Drawing.Size(55, 20);
             this.ARts.TabIndex = 4;
@@ -334,11 +373,10 @@
             // 
             // Autoscroll
             // 
-            this.Autoscroll.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.Autoscroll.AutoSize = true;
             this.Autoscroll.Checked = true;
             this.Autoscroll.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.Autoscroll.Location = new System.Drawing.Point(9, 483);
+            this.Autoscroll.Location = new System.Drawing.Point(561, 52);
             this.Autoscroll.Name = "Autoscroll";
             this.Autoscroll.Size = new System.Drawing.Size(89, 20);
             this.Autoscroll.TabIndex = 18;
@@ -348,7 +386,7 @@
             // Timestamp
             // 
             this.Timestamp.AutoSize = true;
-            this.Timestamp.Location = new System.Drawing.Point(561, 86);
+            this.Timestamp.Location = new System.Drawing.Point(561, 78);
             this.Timestamp.Name = "Timestamp";
             this.Timestamp.Size = new System.Drawing.Size(95, 20);
             this.Timestamp.TabIndex = 15;
@@ -358,7 +396,7 @@
             // AppendNewlineEnable
             // 
             this.AppendNewlineEnable.AutoSize = true;
-            this.AppendNewlineEnable.Location = new System.Drawing.Point(427, 85);
+            this.AppendNewlineEnable.Location = new System.Drawing.Point(427, 78);
             this.AppendNewlineEnable.Name = "AppendNewlineEnable";
             this.AppendNewlineEnable.Size = new System.Drawing.Size(128, 20);
             this.AppendNewlineEnable.TabIndex = 14;
@@ -378,22 +416,13 @@
             // ADtr
             // 
             this.ADtr.AutoSize = true;
-            this.ADtr.Location = new System.Drawing.Point(8, 94);
+            this.ADtr.Location = new System.Drawing.Point(7, 102);
             this.ADtr.Name = "ADtr";
             this.ADtr.Size = new System.Drawing.Size(56, 20);
             this.ADtr.TabIndex = 3;
             this.ADtr.Text = "DTR";
             this.ADtr.UseVisualStyleBackColor = true;
             this.ADtr.CheckedChanged += new System.EventHandler(this.ADtr_CheckedChanged);
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(562, 55);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(44, 16);
-            this.label3.TabIndex = 10;
-            this.label3.Text = "suffix:";
             // 
             // groupBox2
             // 
@@ -406,11 +435,13 @@
             this.groupBox2.Controls.Add(this.BInput);
             this.groupBox2.Controls.Add(this.BClose);
             this.groupBox2.Controls.Add(this.BOpen);
+            this.groupBox2.Controls.Add(this.BCts);
             this.groupBox2.Controls.Add(this.BRts);
+            this.groupBox2.Controls.Add(this.BDsr);
             this.groupBox2.Controls.Add(this.BDtr);
-            this.groupBox2.Location = new System.Drawing.Point(15, 536);
+            this.groupBox2.Location = new System.Drawing.Point(6, 415);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(694, 193);
+            this.groupBox2.Size = new System.Drawing.Size(703, 194);
             this.groupBox2.TabIndex = 4;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "PORT B";
@@ -451,7 +482,7 @@
             this.BClearHistory.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.BClearHistory.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.BClearHistory.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.BClearHistory.Location = new System.Drawing.Point(489, 160);
+            this.BClearHistory.Location = new System.Drawing.Point(498, 159);
             this.BClearHistory.Name = "BClearHistory";
             this.BClearHistory.Size = new System.Drawing.Size(102, 29);
             this.BClearHistory.TabIndex = 31;
@@ -464,7 +495,7 @@
             this.BSend.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.BSend.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.BSend.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.BSend.Location = new System.Drawing.Point(598, 160);
+            this.BSend.Location = new System.Drawing.Point(606, 159);
             this.BSend.Name = "BSend";
             this.BSend.Size = new System.Drawing.Size(87, 29);
             this.BSend.TabIndex = 32;
@@ -478,18 +509,18 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.BInput.Font = new System.Drawing.Font("Consolas", 12F);
             this.BInput.FormattingEnabled = true;
-            this.BInput.Location = new System.Drawing.Point(7, 127);
+            this.BInput.Location = new System.Drawing.Point(6, 126);
             this.BInput.Name = "BInput";
-            this.BInput.Size = new System.Drawing.Size(678, 27);
+            this.BInput.Size = new System.Drawing.Size(687, 27);
             this.BInput.TabIndex = 30;
             this.BInput.KeyDown += new System.Windows.Forms.KeyEventHandler(this.BInput_KeyDown);
             // 
             // BClose
             // 
             this.BClose.BackColor = System.Drawing.SystemColors.InactiveBorder;
-            this.BClose.Location = new System.Drawing.Point(223, 23);
+            this.BClose.Location = new System.Drawing.Point(223, 25);
             this.BClose.Name = "BClose";
-            this.BClose.Size = new System.Drawing.Size(85, 91);
+            this.BClose.Size = new System.Drawing.Size(85, 28);
             this.BClose.TabIndex = 29;
             this.BClose.Text = "close";
             this.BClose.UseVisualStyleBackColor = false;
@@ -498,18 +529,29 @@
             // BOpen
             // 
             this.BOpen.BackColor = System.Drawing.SystemColors.InactiveBorder;
-            this.BOpen.Location = new System.Drawing.Point(131, 23);
+            this.BOpen.Location = new System.Drawing.Point(131, 25);
             this.BOpen.Name = "BOpen";
-            this.BOpen.Size = new System.Drawing.Size(85, 91);
+            this.BOpen.Size = new System.Drawing.Size(85, 28);
             this.BOpen.TabIndex = 28;
             this.BOpen.Text = "open";
             this.BOpen.UseVisualStyleBackColor = false;
             this.BOpen.Click += new System.EventHandler(this.BOpen_Click);
             // 
+            // BCts
+            // 
+            this.BCts.AutoSize = true;
+            this.BCts.Enabled = false;
+            this.BCts.Location = new System.Drawing.Point(191, 100);
+            this.BCts.Name = "BCts";
+            this.BCts.Size = new System.Drawing.Size(55, 20);
+            this.BCts.TabIndex = 27;
+            this.BCts.Text = "CTS";
+            this.BCts.UseVisualStyleBackColor = true;
+            // 
             // BRts
             // 
             this.BRts.AutoSize = true;
-            this.BRts.Location = new System.Drawing.Point(70, 94);
+            this.BRts.Location = new System.Drawing.Point(69, 100);
             this.BRts.Name = "BRts";
             this.BRts.Size = new System.Drawing.Size(55, 20);
             this.BRts.TabIndex = 27;
@@ -517,10 +559,21 @@
             this.BRts.UseVisualStyleBackColor = true;
             this.BRts.CheckedChanged += new System.EventHandler(this.BRts_CheckedChanged);
             // 
+            // BDsr
+            // 
+            this.BDsr.AutoSize = true;
+            this.BDsr.Enabled = false;
+            this.BDsr.Location = new System.Drawing.Point(130, 100);
+            this.BDsr.Name = "BDsr";
+            this.BDsr.Size = new System.Drawing.Size(56, 20);
+            this.BDsr.TabIndex = 26;
+            this.BDsr.Text = "DSR";
+            this.BDsr.UseVisualStyleBackColor = true;
+            // 
             // BDtr
             // 
             this.BDtr.AutoSize = true;
-            this.BDtr.Location = new System.Drawing.Point(8, 94);
+            this.BDtr.Location = new System.Drawing.Point(8, 100);
             this.BDtr.Name = "BDtr";
             this.BDtr.Size = new System.Drawing.Size(56, 20);
             this.BDtr.TabIndex = 26;
@@ -532,8 +585,8 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.SystemColors.InactiveCaption;
-            this.ClientSize = new System.Drawing.Size(723, 742);
+            this.BackColor = System.Drawing.Color.White;
+            this.ClientSize = new System.Drawing.Size(723, 621);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Font = new System.Drawing.Font("Arial", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -583,9 +636,13 @@
         private System.Windows.Forms.CheckBox AppendNewlineEnable;
         private System.Windows.Forms.CheckBox Autoscroll;
         private System.Windows.Forms.TextBox Prefix;
-        private System.Windows.Forms.CheckBox LinkAB;
+        private System.Windows.Forms.CheckBox LinkData;
         private System.Windows.Forms.CheckBox Timestamp;
-        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.CheckBox LinkSignal;
+        private System.Windows.Forms.CheckBox BCts;
+        private System.Windows.Forms.CheckBox BDsr;
+        private System.Windows.Forms.CheckBox ACts;
+        private System.Windows.Forms.CheckBox ADsr;
     }
 }
 
