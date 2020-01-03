@@ -18,12 +18,15 @@ namespace IndirectSerial {
 
         private UInt64 timeout = 100;
 
-        private Timer dataTimer = new Timer { Interval = 10 };
+        private Timer dataTimer = new Timer { Interval = 5 };
         private Timer signalTimer = new Timer { Interval = 5 };
 
         private UInt32 aLineBytes = 0, bLineBytes;
+        private Boolean aPrintedHeader = false, bPrintedHeader = false;
         private UInt64 lastPrint_ms;
         private Boolean printingA = true;
+        private Boolean printingB = false;
+        private Boolean printingPC = false;
 
         private volatile List<Byte> AReceivedBytes = new List<Byte>(), BReceivedBytes = new List<Byte>();
         private UInt32 newlineBytes = 16;
@@ -32,6 +35,7 @@ namespace IndirectSerial {
 
         private volatile Boolean lastADsr, lastACts, lastBDsr, lastBCts;
         private Boolean linkedSignal = false, linkedData = false;
+
         public FrmMain() {
             InitializeComponent();
             ABaud.Text = portA.BaudRate.ToString();
@@ -43,8 +47,10 @@ namespace IndirectSerial {
 
             APortList_DropDown(null, null);
             BPortList_DropDown(null, null);
-            APortList.SelectedIndex = 0;
-            BPortList.SelectedIndex = 0;
+            if (APortList.Items.Count > 0)
+                APortList.SelectedIndex = 0;
+            if (BPortList.Items.Count > 0)
+                BPortList.SelectedIndex = 0;
 
             LinkSignal.Checked = linkedSignal;
             LinkData.Checked = linkedData;
@@ -67,23 +73,29 @@ namespace IndirectSerial {
                         Content.AppendText("\n");
                         aLineBytes = 0;
                         bLineBytes = 0;
+                        aPrintedHeader = false;
+                        bPrintedHeader = false;
 
                         ScrollToLast();
                     }
                 }
 
                 if (portA.IsOpen && portA.BytesToRead > 0) {
-                    if (!printingA &&
-                    (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && Content.Text.EndsWith("0A")))) {
+                    if (!printingA && (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && !Content.Text.EndsWith("0A")))) {
                         Content.AppendText("\n");
 
                         aLineBytes = 0;
                         bLineBytes = 0;
+                        aPrintedHeader = false;
+                        bPrintedHeader = false;
 
                         ScrollToLast();
                     }
 
                     printingA = true;
+                    printingB = false;
+                    printingPC = false;
+
                     while (portA.BytesToRead > 0) {
                         Byte c = (Byte)portA.ReadByte();
 
@@ -93,14 +105,20 @@ namespace IndirectSerial {
                                 Content.AppendText("\n");
                             aLineBytes = 0;
                             bLineBytes = 0;
+                            aPrintedHeader = false;
+                            bPrintedHeader = false;
                         }
 
-                        if (aLineBytes == 0) {
+                        if (aLineBytes == 0 && !aPrintedHeader) {
+                            if (!Content.Text.EndsWith("\n"))
+                                Content.AppendText("\n");
                             if (Timestamp.Checked)
                                 Content.AppendText($"{GetTimeString()} ", Color.Gray);
-                            Content.AppendText(linkedData ? "A->B " : "A->PC ", Color.DarkGray);
+                            Content.AppendText(linkedData ? "A->B  " : "A->PC ", Color.DarkGray);
                             aLineBytes = 0;
                             bLineBytes = 0;
+                            aPrintedHeader = true;
+                            bPrintedHeader = false;
                         }
 
                         AReceivedBytes.Add(c);
@@ -122,13 +140,19 @@ namespace IndirectSerial {
                         if ((c == '\n') && DisplayAsText.Checked) {
                             aLineBytes = 0;
                             bLineBytes = 0;
+                            aPrintedHeader = false;
+                            bPrintedHeader = false;
+
+                            Content.AppendText(newContent.ToString(), Color.Red);
+                            newContent.Clear();
                         }
                     }
                     if (DisplayAsHex.Checked) {
-                        //Content.AppendText("\n");
                         newContent.Append("\n");
                         aLineBytes = 0;
                         bLineBytes = 0;
+                        aPrintedHeader = false;
+                        bPrintedHeader = false;
                     }
 
                     if (portB.IsOpen && linkedData) {
@@ -144,33 +168,49 @@ namespace IndirectSerial {
                 }
 
                 if (portB.IsOpen && portB.BytesToRead > 0) {
-                    if (printingA && (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && Content.Text.EndsWith("0A")))) {
+                    if (!printingB && (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && !Content.Text.EndsWith("0A")))) {
                         Content.AppendText("\n");
 
                         aLineBytes = 0;
                         bLineBytes = 0;
+                        aPrintedHeader = false;
+                        bPrintedHeader = false;
 
                         ScrollToLast();
                     }
 
                     printingA = false;
+                    printingB = true;
+                    printingPC = false;
+
                     while (portB.BytesToRead > 0) {
                         Byte c = (Byte)portB.ReadByte();
 
                         if (BytesNewlineEnable.Checked
                         && bLineBytes >= newlineBytes) {
-                            if (!Content.Text.EndsWith("\n") && !newContent.ToString().EndsWith("\n"))
+                            if (!Content.Text.EndsWith("\n") && !newContent.ToString().EndsWith("\n")) {
                                 Content.AppendText("\n");
+                            }
+
                             bLineBytes = 0;
                             aLineBytes = 0;
+                            aPrintedHeader = false;
+                            bPrintedHeader = false;
                         }
 
-                        if (bLineBytes == 0) {
+                        if (bLineBytes == 0 && !bPrintedHeader) {
+                            if (!Content.Text.EndsWith("\n")) {
+                                Content.AppendText("\n");
+                            }
+
                             if (Timestamp.Checked)
                                 Content.AppendText($"{GetTimeString()} ", Color.Gray);
-                            Content.AppendText(linkedData ? "B->A " : "B->PC ", Color.DarkGray);
+
+                            Content.AppendText(linkedData ? "B->A  " : "B->PC ", Color.DarkGray);
                             bLineBytes = 0;
                             aLineBytes = 0;
+                            aPrintedHeader = false;
+                            bPrintedHeader = true;
                         }
 
                         BReceivedBytes.Add(c);
@@ -189,14 +229,20 @@ namespace IndirectSerial {
                         if ((c == '\n') && DisplayAsText.Checked) {
                             aLineBytes = 0;
                             bLineBytes = 0;
+                            aPrintedHeader = false;
+                            bPrintedHeader = false;
+
+                            Content.AppendText(newContent.ToString(), Color.Blue);
+                            newContent.Clear();
                         }
                     }
                     if (DisplayAsHex.Checked) {
                         newContent.Append("\n");
                         aLineBytes = 0;
                         bLineBytes = 0;
+                        aPrintedHeader = false;
+                        bPrintedHeader = false;
                     }
-
 
                     if (portA.IsOpen && linkedData) {
                         Byte[] array = BReceivedBytes.ToArray();
@@ -276,12 +322,12 @@ namespace IndirectSerial {
 
             String prefix = Prefix.Text;
 
-            String rgx = String.Format("{0}[0-9A-F]{{1,2}}", prefix);
+            String rgx = $"{prefix}[0-9A-F]{{1,2}}";
             //MatchCollection match = Regex.Matches(text, "h[0-9A-F]{1,2}\\s?"); // include space
             MatchCollection matches = Regex.Matches(text, rgx);
 
             for (Int32 i = 0; i < matches.Count; ++i) {
-                Byte c = Byte.Parse(Regex.Match(matches[i].ToString(), @"\d+").Value, System.Globalization.NumberStyles.HexNumber);
+                Byte c = Byte.Parse(Regex.Match(matches[i].ToString(), "[0-9A-F]{1,2}").Value, System.Globalization.NumberStyles.HexNumber);
                 args.Add(c);
                 text = text.ReplaceFirst(matches[i].ToString(), ((Char)0).ToString());
             }
@@ -355,6 +401,10 @@ namespace IndirectSerial {
         private void ASend_Click(Object sender, EventArgs e) => AParseAndSend(AInput.Text);
 
         private void AParseAndSend(String text) {
+            printingA = false;
+            printingB = false;
+            printingPC = true;
+
             if (!AInput.Items.Contains(text))
                 AInput.Items.Add(AInput.Text);
 
@@ -363,6 +413,11 @@ namespace IndirectSerial {
             // Content.AppendText("\n");
             aLineBytes = 0;
             bLineBytes = 0;
+            aPrintedHeader = false;
+            bPrintedHeader = false;
+
+            if (!Content.Text.EndsWith("\n"))
+                Content.AppendText("\n");
 
             if (Timestamp.Checked)
                 Content.AppendText($"{GetTimeString()} ", Color.Gray);
@@ -377,17 +432,15 @@ namespace IndirectSerial {
 
             if (HexPrefixEnable.Checked) {
                 if (DisplayAsHex.Checked)
-                    Content.AppendText(hexStr + "\n", Color.Red);
+                    Content.AppendText(hexStr, Color.Green);
                 else
-                    Content.AppendText(complexStr + "\n", Color.Red);
+                    Content.AppendText(complexStr, Color.Green);
             }
             else {
                 if (DisplayAsHex.Checked)
-                    Content.AppendText(StringToHexString(text) + "\n", Color.Red);
+                    Content.AppendText(StringToHexString(text), Color.Green);
                 else {
-                    Content.AppendText(text, Color.Red);
-                    if (!AppendNewlineEnable.Checked && !text.EndsWith("\n"))
-                        Content.AppendText("\n");
+                    Content.AppendText(text, Color.Green);
                 }
             }
 
@@ -398,6 +451,10 @@ namespace IndirectSerial {
         }
 
         private void BParseAndSend(String text) {
+            printingA = false;
+            printingB = false;
+            printingPC = true;
+
             if (!BInput.Items.Contains(text))
                 BInput.Items.Add(BInput.Text);
 
@@ -405,6 +462,11 @@ namespace IndirectSerial {
 
             aLineBytes = 0;
             bLineBytes = 0;
+            aPrintedHeader = false;
+            bPrintedHeader = false;
+
+            if (!Content.Text.EndsWith("\n"))
+                Content.AppendText("\n");
 
             if (Timestamp.Checked)
                 Content.AppendText($"{GetTimeString()} ", Color.Gray);
@@ -419,17 +481,15 @@ namespace IndirectSerial {
 
             if (HexPrefixEnable.Checked) {
                 if (DisplayAsHex.Checked)
-                    Content.AppendText(hexStr + "\n", Color.Blue);
+                    Content.AppendText(hexStr, Color.Green);
                 else
-                    Content.AppendText(complexStr + "\n", Color.Blue);
+                    Content.AppendText(complexStr, Color.Green);
             }
             else {
                 if (DisplayAsHex.Checked)
-                    Content.AppendText(StringToHexString(text) + "\n", Color.Blue);
+                    Content.AppendText(StringToHexString(text), Color.Green);
                 else {
-                    Content.AppendText(text, Color.Blue);
-                    if (!AppendNewlineEnable.Checked && !text.EndsWith("\n"))
-                        Content.AppendText("\n");
+                    Content.AppendText(text, Color.Green);
                 }
             }
 
