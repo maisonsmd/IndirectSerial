@@ -23,11 +23,14 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            this.Content = new System.Windows.Forms.RichTextBox();
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmMain));
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.fctb = new FastColoredTextBoxNS.FastColoredTextBox();
             this.ABaud = new System.Windows.Forms.ComboBox();
             this.APortList = new System.Windows.Forms.ComboBox();
             this.LinkSignal = new System.Windows.Forms.CheckBox();
+            this.AutoReconnectA = new System.Windows.Forms.CheckBox();
             this.LinkData = new System.Windows.Forms.CheckBox();
             this.ClearDisplay = new System.Windows.Forms.Button();
             this.AClearHistory = new System.Windows.Forms.Button();
@@ -57,6 +60,7 @@
             this.BPortList = new System.Windows.Forms.ComboBox();
             this.BClearHistory = new System.Windows.Forms.Button();
             this.BSend = new System.Windows.Forms.Button();
+            this.AutoReconnectB = new System.Windows.Forms.CheckBox();
             this.BInput = new System.Windows.Forms.ComboBox();
             this.BClose = new System.Windows.Forms.Button();
             this.BOpen = new System.Windows.Forms.Button();
@@ -65,33 +69,20 @@
             this.BDsr = new System.Windows.Forms.CheckBox();
             this.BDtr = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.fctb)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // Content
-            // 
-            this.Content.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.Content.BackColor = System.Drawing.SystemColors.ControlLightLight;
-            this.Content.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.Content.Font = new System.Drawing.Font("Consolas", 12F);
-            this.Content.Location = new System.Drawing.Point(7, 129);
-            this.Content.Name = "Content";
-            this.Content.ReadOnly = true;
-            this.Content.Size = new System.Drawing.Size(690, 191);
-            this.Content.TabIndex = 16;
-            this.Content.TabStop = false;
-            this.Content.Text = "";
             // 
             // groupBox1
             // 
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox1.Controls.Add(this.fctb);
             this.groupBox1.Controls.Add(this.ABaud);
             this.groupBox1.Controls.Add(this.APortList);
             this.groupBox1.Controls.Add(this.LinkSignal);
+            this.groupBox1.Controls.Add(this.AutoReconnectA);
             this.groupBox1.Controls.Add(this.LinkData);
             this.groupBox1.Controls.Add(this.ClearDisplay);
             this.groupBox1.Controls.Add(this.AClearHistory);
@@ -116,13 +107,54 @@
             this.groupBox1.Controls.Add(this.AppendNewlineEnable);
             this.groupBox1.Controls.Add(this.HexPrefixEnable);
             this.groupBox1.Controls.Add(this.ADtr);
-            this.groupBox1.Controls.Add(this.Content);
             this.groupBox1.Location = new System.Drawing.Point(6, 12);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(705, 397);
+            this.groupBox1.Size = new System.Drawing.Size(705, 570);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "PORT A";
+            // 
+            // fctb
+            // 
+            this.fctb.AcceptsReturn = false;
+            this.fctb.AcceptsTab = false;
+            this.fctb.AllowMacroRecording = false;
+            this.fctb.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.fctb.AutoCompleteBracketsList = new char[] {
+        '(',
+        ')',
+        '{',
+        '}',
+        '[',
+        ']',
+        '\"',
+        '\"',
+        '\'',
+        '\''};
+            this.fctb.AutoIndent = false;
+            this.fctb.AutoIndentChars = false;
+            this.fctb.AutoIndentCharsPatterns = "^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;=]+);\r\n^\\s*(case|default)\\s*[^:]*" +
+    "(?<range>:)\\s*(?<range>[^;]+);";
+            this.fctb.AutoScrollMinSize = new System.Drawing.Size(29, 18);
+            this.fctb.BackBrush = null;
+            this.fctb.CaretBlinking = false;
+            this.fctb.CharHeight = 18;
+            this.fctb.CharWidth = 9;
+            this.fctb.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.fctb.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
+            this.fctb.Font = new System.Drawing.Font("Consolas", 12F);
+            this.fctb.IndentBackColor = System.Drawing.Color.Beige;
+            this.fctb.IsReplaceMode = false;
+            this.fctb.Location = new System.Drawing.Point(7, 128);
+            this.fctb.Name = "fctb";
+            this.fctb.Paddings = new System.Windows.Forms.Padding(0);
+            this.fctb.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(255)))));
+            this.fctb.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("fctb.ServiceColors")));
+            this.fctb.Size = new System.Drawing.Size(692, 366);
+            this.fctb.TabIndex = 28;
+            this.fctb.Zoom = 100;
             // 
             // ABaud
             // 
@@ -166,6 +198,16 @@
             this.LinkSignal.UseVisualStyleBackColor = true;
             this.LinkSignal.CheckedChanged += new System.EventHandler(this.LinkSignal_CheckedChanged);
             // 
+            // AutoReconnectA
+            // 
+            this.AutoReconnectA.AutoSize = true;
+            this.AutoReconnectA.Location = new System.Drawing.Point(131, 65);
+            this.AutoReconnectA.Name = "AutoReconnectA";
+            this.AutoReconnectA.Size = new System.Drawing.Size(123, 20);
+            this.AutoReconnectA.TabIndex = 13;
+            this.AutoReconnectA.Text = "Auto reconnect";
+            this.AutoReconnectA.UseVisualStyleBackColor = true;
+            // 
             // LinkData
             // 
             this.LinkData.AutoSize = true;
@@ -182,7 +224,7 @@
             this.ClearDisplay.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.ClearDisplay.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.ClearDisplay.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.ClearDisplay.Location = new System.Drawing.Point(384, 362);
+            this.ClearDisplay.Location = new System.Drawing.Point(384, 535);
             this.ClearDisplay.Name = "ClearDisplay";
             this.ClearDisplay.Size = new System.Drawing.Size(111, 29);
             this.ClearDisplay.TabIndex = 21;
@@ -195,9 +237,9 @@
             this.AClearHistory.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.AClearHistory.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.AClearHistory.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.AClearHistory.Location = new System.Drawing.Point(501, 362);
+            this.AClearHistory.Location = new System.Drawing.Point(501, 535);
             this.AClearHistory.Name = "AClearHistory";
-            this.AClearHistory.Size = new System.Drawing.Size(102, 29);
+            this.AClearHistory.Size = new System.Drawing.Size(99, 29);
             this.AClearHistory.TabIndex = 22;
             this.AClearHistory.Text = "clear history";
             this.AClearHistory.UseVisualStyleBackColor = false;
@@ -208,9 +250,9 @@
             this.ASend.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.ASend.BackColor = System.Drawing.SystemColors.InactiveBorder;
             this.ASend.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.ASend.Location = new System.Drawing.Point(611, 362);
+            this.ASend.Location = new System.Drawing.Point(606, 535);
             this.ASend.Name = "ASend";
-            this.ASend.Size = new System.Drawing.Size(87, 29);
+            this.ASend.Size = new System.Drawing.Size(92, 29);
             this.ASend.TabIndex = 23;
             this.ASend.Text = "send";
             this.ASend.UseVisualStyleBackColor = false;
@@ -233,7 +275,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.AInput.Font = new System.Drawing.Font("Consolas", 12F);
             this.AInput.FormattingEnabled = true;
-            this.AInput.Location = new System.Drawing.Point(8, 327);
+            this.AInput.Location = new System.Drawing.Point(8, 500);
             this.AInput.Name = "AInput";
             this.AInput.Size = new System.Drawing.Size(689, 27);
             this.AInput.TabIndex = 17;
@@ -432,6 +474,7 @@
             this.groupBox2.Controls.Add(this.BPortList);
             this.groupBox2.Controls.Add(this.BClearHistory);
             this.groupBox2.Controls.Add(this.BSend);
+            this.groupBox2.Controls.Add(this.AutoReconnectB);
             this.groupBox2.Controls.Add(this.BInput);
             this.groupBox2.Controls.Add(this.BClose);
             this.groupBox2.Controls.Add(this.BOpen);
@@ -439,7 +482,7 @@
             this.groupBox2.Controls.Add(this.BRts);
             this.groupBox2.Controls.Add(this.BDsr);
             this.groupBox2.Controls.Add(this.BDtr);
-            this.groupBox2.Location = new System.Drawing.Point(6, 415);
+            this.groupBox2.Location = new System.Drawing.Point(6, 588);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(703, 194);
             this.groupBox2.TabIndex = 4;
@@ -502,6 +545,16 @@
             this.BSend.Text = "send";
             this.BSend.UseVisualStyleBackColor = false;
             this.BSend.Click += new System.EventHandler(this.BSend_Click);
+            // 
+            // AutoReconnectB
+            // 
+            this.AutoReconnectB.AutoSize = true;
+            this.AutoReconnectB.Location = new System.Drawing.Point(131, 63);
+            this.AutoReconnectB.Name = "AutoReconnectB";
+            this.AutoReconnectB.Size = new System.Drawing.Size(123, 20);
+            this.AutoReconnectB.TabIndex = 13;
+            this.AutoReconnectB.Text = "Auto reconnect";
+            this.AutoReconnectB.UseVisualStyleBackColor = true;
             // 
             // BInput
             // 
@@ -586,7 +639,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(723, 621);
+            this.ClientSize = new System.Drawing.Size(723, 794);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Font = new System.Drawing.Font("Arial", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -595,6 +648,7 @@
             this.Text = "Indirect Serial";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.fctb)).EndInit();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             this.ResumeLayout(false);
@@ -602,7 +656,6 @@
         }
 
         #endregion
-        private System.Windows.Forms.RichTextBox Content;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.Button AClose;
         private System.Windows.Forms.Button AOpen;
@@ -643,6 +696,9 @@
         private System.Windows.Forms.CheckBox BDsr;
         private System.Windows.Forms.CheckBox ACts;
         private System.Windows.Forms.CheckBox ADsr;
+        private FastColoredTextBoxNS.FastColoredTextBox fctb;
+        private System.Windows.Forms.CheckBox AutoReconnectA;
+        private System.Windows.Forms.CheckBox AutoReconnectB;
     }
 }
 

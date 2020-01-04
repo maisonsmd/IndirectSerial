@@ -20,13 +20,15 @@ namespace IndirectSerial {
 
         private Timer dataTimer = new Timer { Interval = 5 };
         private Timer signalTimer = new Timer { Interval = 5 };
+        private Timer portSearchTimer = new Timer { Interval = 1000 };
+
+        private List<String> oldPortList = new List<String>();
 
         private UInt32 aLineBytes = 0, bLineBytes;
         private Boolean aPrintedHeader = false, bPrintedHeader = false;
         private UInt64 lastPrint_ms;
         private Boolean printingA = true;
         private Boolean printingB = false;
-        private Boolean printingPC = false;
 
         private volatile List<Byte> AReceivedBytes = new List<Byte>(), BReceivedBytes = new List<Byte>();
         private UInt32 newlineBytes = 16;
@@ -62,199 +64,6 @@ namespace IndirectSerial {
 
             dataTimer.Tick += (Object sender, EventArgs e) => {
                 dataTimer.Stop();
-
-                UInt64 current_ms = (UInt64)millisSw.ElapsedMilliseconds;
-                StringBuilder newContent = new StringBuilder(String.Empty);
-
-                if (TimeoutNewlineEnable.Checked
-                && (current_ms >= lastPrint_ms + timeout)) {
-                    if (!Content.Text.EndsWith("\n")
-                    || (DisplayAsHex.Checked && Content.Text.EndsWith("0A"))) {
-                        Content.AppendText("\n");
-                        aLineBytes = 0;
-                        bLineBytes = 0;
-                        aPrintedHeader = false;
-                        bPrintedHeader = false;
-
-                        ScrollToLast();
-                    }
-                }
-
-                if (portA.IsOpen && portA.BytesToRead > 0) {
-                    if (!printingA && (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && !Content.Text.EndsWith("0A")))) {
-                        Content.AppendText("\n");
-
-                        aLineBytes = 0;
-                        bLineBytes = 0;
-                        aPrintedHeader = false;
-                        bPrintedHeader = false;
-
-                        ScrollToLast();
-                    }
-
-                    printingA = true;
-                    printingB = false;
-                    printingPC = false;
-
-                    while (portA.BytesToRead > 0) {
-                        Byte c = (Byte)portA.ReadByte();
-
-                        if (BytesNewlineEnable.Checked
-                        && aLineBytes >= newlineBytes) {
-                            if (!Content.Text.EndsWith("\n") && !newContent.ToString().EndsWith("\n"))
-                                Content.AppendText("\n");
-                            aLineBytes = 0;
-                            bLineBytes = 0;
-                            aPrintedHeader = false;
-                            bPrintedHeader = false;
-                        }
-
-                        if (aLineBytes == 0 && !aPrintedHeader) {
-                            if (!Content.Text.EndsWith("\n"))
-                                Content.AppendText("\n");
-                            if (Timestamp.Checked)
-                                Content.AppendText($"{GetTimeString()} ", Color.Gray);
-                            Content.AppendText(linkedData ? "A->B  " : "A->PC ", Color.DarkGray);
-                            aLineBytes = 0;
-                            bLineBytes = 0;
-                            aPrintedHeader = true;
-                            bPrintedHeader = false;
-                        }
-
-                        AReceivedBytes.Add(c);
-                        aLineBytes++;
-                        lastPrint_ms = current_ms;
-
-                        if (DisplayAsHex.Checked)
-                            //Content.AppendText(String.Format("{0:X2} ", c), Color.Red);
-                            newContent.AppendFormat("{0:X2} ", c);
-                        else {
-                            if ((c >= 0x20 && c <= 0x7E) || c == '\n')
-                                //Content.AppendText(((Char)c).ToString(), Color.Red);
-                                newContent.Append(((Char)c).ToString());
-                            else
-                                //Content.AppendText(String.Format("[{0:X2}]", c), Color.Red);
-                                newContent.AppendFormat("[{0:X2}]", c);
-                        }
-
-                        if ((c == '\n') && DisplayAsText.Checked) {
-                            aLineBytes = 0;
-                            bLineBytes = 0;
-                            aPrintedHeader = false;
-                            bPrintedHeader = false;
-
-                            Content.AppendText(newContent.ToString(), Color.Red);
-                            newContent.Clear();
-                        }
-                    }
-                    if (DisplayAsHex.Checked) {
-                        newContent.Append("\n");
-                        aLineBytes = 0;
-                        bLineBytes = 0;
-                        aPrintedHeader = false;
-                        bPrintedHeader = false;
-                    }
-
-                    if (portB.IsOpen && linkedData) {
-                        Byte[] array = AReceivedBytes.ToArray();
-                        portB.BaseStream.Write(array, 0, array.Length);
-                    }
-                    AReceivedBytes.Clear();
-                    Content.AppendText(newContent.ToString(), Color.Red);
-                    ScrollToLast();
-
-                    dataTimer.Start();
-                    return;
-                }
-
-                if (portB.IsOpen && portB.BytesToRead > 0) {
-                    if (!printingB && (!Content.Text.EndsWith("\n") || (DisplayAsHex.Checked && !Content.Text.EndsWith("0A")))) {
-                        Content.AppendText("\n");
-
-                        aLineBytes = 0;
-                        bLineBytes = 0;
-                        aPrintedHeader = false;
-                        bPrintedHeader = false;
-
-                        ScrollToLast();
-                    }
-
-                    printingA = false;
-                    printingB = true;
-                    printingPC = false;
-
-                    while (portB.BytesToRead > 0) {
-                        Byte c = (Byte)portB.ReadByte();
-
-                        if (BytesNewlineEnable.Checked
-                        && bLineBytes >= newlineBytes) {
-                            if (!Content.Text.EndsWith("\n") && !newContent.ToString().EndsWith("\n")) {
-                                Content.AppendText("\n");
-                            }
-
-                            bLineBytes = 0;
-                            aLineBytes = 0;
-                            aPrintedHeader = false;
-                            bPrintedHeader = false;
-                        }
-
-                        if (bLineBytes == 0 && !bPrintedHeader) {
-                            if (!Content.Text.EndsWith("\n")) {
-                                Content.AppendText("\n");
-                            }
-
-                            if (Timestamp.Checked)
-                                Content.AppendText($"{GetTimeString()} ", Color.Gray);
-
-                            Content.AppendText(linkedData ? "B->A  " : "B->PC ", Color.DarkGray);
-                            bLineBytes = 0;
-                            aLineBytes = 0;
-                            aPrintedHeader = false;
-                            bPrintedHeader = true;
-                        }
-
-                        BReceivedBytes.Add(c);
-                        bLineBytes++;
-                        lastPrint_ms = current_ms;
-
-                        if (DisplayAsHex.Checked)
-                            newContent.AppendFormat("{0:X2} ", c);
-                        else {
-                            if ((c >= 0x20 && c <= 0x7E) || c == '\n')
-                                newContent.Append(((Char)c).ToString());
-                            else
-                                newContent.AppendFormat("[{0:X2}]", c);
-                        }
-
-                        if ((c == '\n') && DisplayAsText.Checked) {
-                            aLineBytes = 0;
-                            bLineBytes = 0;
-                            aPrintedHeader = false;
-                            bPrintedHeader = false;
-
-                            Content.AppendText(newContent.ToString(), Color.Blue);
-                            newContent.Clear();
-                        }
-                    }
-                    if (DisplayAsHex.Checked) {
-                        newContent.Append("\n");
-                        aLineBytes = 0;
-                        bLineBytes = 0;
-                        aPrintedHeader = false;
-                        bPrintedHeader = false;
-                    }
-
-                    if (portA.IsOpen && linkedData) {
-                        Byte[] array = BReceivedBytes.ToArray();
-                        portA.BaseStream.Write(array, 0, array.Length);
-                    }
-                    BReceivedBytes.Clear();
-                    Content.AppendText(newContent.ToString(), Color.Blue);
-                    ScrollToLast();
-
-                    dataTimer.Start();
-                    return;
-                }
 
                 dataTimer.Start();
             };
@@ -303,14 +112,115 @@ namespace IndirectSerial {
                 }
             };
 
+            portSearchTimer.Tick += (Object sender, EventArgs e) => {
+                portSearchTimer.Stop();
+
+                List<String> currentPortsList = SerialPort.GetPortNames().ToList();
+                List<String> newPluggedPorts = oldPortList != null ? currentPortsList.Except(oldPortList).ToList() : new List<String>();
+                List<String> newRemovedPorts = currentPortsList != null ? oldPortList.Except(currentPortsList).ToList() : new List<String>();
+
+                if (newPluggedPorts.Any()) {
+                    PortsPlugged(newPluggedPorts);
+                    //Invoke((MethodInvoker)delegate {
+                    //});
+                }
+                if (newRemovedPorts.Any()) {
+                    PortsUnplugged(newRemovedPorts);
+                    //Invoke((MethodInvoker)delegate {
+                    //});
+                }
+
+                oldPortList = currentPortsList;
+
+                portSearchTimer.Start();
+            };
+
             signalTimer.Start();
             dataTimer.Start();
+            portSearchTimer.Start();
+        }
+
+        private void ConcatMessage(String message) {
+            fctb.BeginUpdate();
+            fctb.TextSource.CurrentTB = fctb;
+            fctb.AppendText(message + "\n");
+            fctb.GoEnd();
+            fctb.EndUpdate();
+        }
+
+        private void PortsPlugged(List<String> names) {
+            Console.WriteLine("Plugged: " + String.Join(",", names));
+
+            String aName = portA.PortName;
+            String bName = portB.PortName;
+
+            if (aName != String.Empty
+                && names.Contains(aName)
+                && AutoReconnectA.Checked) {
+                try {
+                    try {
+                        ConcatMessage(String.Format("opening {0}...", aName));
+                        APortList.Text = aName;
+                        fctb.Refresh();
+
+                        portA.Open();
+                        AOpen.Enabled = false;
+                        ABaud.Enabled = false;
+                        AClose.Enabled = true;
+
+                        ConcatMessage(String.Format("{0} opened", aName));
+                    }
+                    catch (Exception exc) {
+                        ConcatMessage(String.Format("cannot open {0}, trace: {1}", portA.PortName, exc.ToString()));
+                    }
+                }
+                catch (Exception e) {
+                    ConcatMessage(String.Format("cannot open {0}, trace: {1}", aName, e.ToString()));
+                }
+            }
+            if (bName != String.Empty
+                && names.Contains(bName)
+                && AutoReconnectB.Checked) {
+                try {
+                    ConcatMessage(String.Format("opening {0}...", bName));
+                    BPortList.Text = bName;
+                    fctb.Refresh();
+
+                    portB.Open();
+                    BOpen.Enabled = false;
+                    BBaud.Enabled = false;
+                    BClose.Enabled = true;
+                    ConcatMessage(String.Format("{0} opened", bName));
+                }
+                catch (Exception e) {
+                    ConcatMessage(String.Format("cannot open {0}, trace: {1}", bName, e.ToString()));
+                }
+            }
+        }
+
+        private void PortsUnplugged(List<String> names) {
+            Console.WriteLine("Removed: " + String.Join(",", names));
+
+            if (names.Contains(portA.PortName) && AClose.Enabled) {
+                AOpen.Enabled = true;
+                ABaud.Enabled = true;
+                AClose.Enabled = false;
+
+                portA.Close();
+                ConcatMessage(String.Format("{0} closed", portA.PortName));
+            }
+            if (names.Contains(portB.PortName) && BClose.Enabled) {
+                BOpen.Enabled = true;
+                BBaud.Enabled = true;
+                BClose.Enabled = false;
+
+                portB.Close();
+                ConcatMessage(String.Format("{0} closed", portB.PortName));
+            }
         }
 
         private void ScrollToLast() {
             if (Autoscroll.Checked) {
-                Content.SelectionStart = Content.Text.Length;
-                Content.ScrollToCaret();
             }
         }
 
@@ -403,7 +313,6 @@ namespace IndirectSerial {
         private void AParseAndSend(String text) {
             printingA = false;
             printingB = false;
-            printingPC = true;
 
             if (!AInput.Items.Contains(text))
                 AInput.Items.Add(AInput.Text);
@@ -416,36 +325,36 @@ namespace IndirectSerial {
             aPrintedHeader = false;
             bPrintedHeader = false;
 
-            if (!Content.Text.EndsWith("\n"))
-                Content.AppendText("\n");
+            //if (!Content.Text.EndsWith("\n"))
+            //    Content.AppendText("\n");
 
-            if (Timestamp.Checked)
-                Content.AppendText($"{GetTimeString()} ", Color.Gray);
-            Content.AppendText("PC->A ", Color.DarkGray);
+            //if (Timestamp.Checked)
+            //    Content.AppendText($"{GetTimeString()} ", Color.Gray);
+            //Content.AppendText("PC->A ", Color.DarkGray);
 
-            if (AppendNewlineEnable.Checked && !text.EndsWith("\n"))
-                text += "\n";
+            //if (AppendNewlineEnable.Checked && !text.EndsWith("\n"))
+            //    text += "\n";
 
-            Byte[] array = HexStringToArray(text);
-            String hexStr = HexArrayToHexString(array);
-            String complexStr = HexArrayToComplexString(array);
+            //Byte[] array = HexStringToArray(text);
+            //String hexStr = HexArrayToHexString(array);
+            //String complexStr = HexArrayToComplexString(array);
 
-            if (HexPrefixEnable.Checked) {
-                if (DisplayAsHex.Checked)
-                    Content.AppendText(hexStr, Color.Green);
-                else
-                    Content.AppendText(complexStr, Color.Green);
-            }
-            else {
-                if (DisplayAsHex.Checked)
-                    Content.AppendText(StringToHexString(text), Color.Green);
-                else {
-                    Content.AppendText(text, Color.Green);
-                }
-            }
+            //if (HexPrefixEnable.Checked) {
+            //    if (DisplayAsHex.Checked)
+            //        Content.AppendText(hexStr, Color.Green);
+            //    else
+            //        Content.AppendText(complexStr, Color.Green);
+            //}
+            //else {
+            //    if (DisplayAsHex.Checked)
+            //        Content.AppendText(StringToHexString(text), Color.Green);
+            //    else {
+            //        Content.AppendText(text, Color.Green);
+            //    }
+            //}
 
-            if (portA.IsOpen)
-                portA.BaseStream.Write(array, 0, array.Length);
+            //if (portA.IsOpen)
+            //    portA.BaseStream.Write(array, 0, array.Length);
 
             ScrollToLast();
         }
@@ -453,48 +362,12 @@ namespace IndirectSerial {
         private void BParseAndSend(String text) {
             printingA = false;
             printingB = false;
-            printingPC = true;
 
             if (!BInput.Items.Contains(text))
                 BInput.Items.Add(BInput.Text);
 
-            lastPrint_ms = (UInt64)millisSw.ElapsedMilliseconds;
-
-            aLineBytes = 0;
-            bLineBytes = 0;
-            aPrintedHeader = false;
-            bPrintedHeader = false;
-
-            if (!Content.Text.EndsWith("\n"))
-                Content.AppendText("\n");
-
-            if (Timestamp.Checked)
-                Content.AppendText($"{GetTimeString()} ", Color.Gray);
-            Content.AppendText("PC->B ", Color.DarkGray);
-
-            if (AppendNewlineEnable.Checked && !text.EndsWith("\n"))
-                text += "\n";
-
-            Byte[] array = HexStringToArray(text);
-            String hexStr = HexArrayToHexString(array);
-            String complexStr = HexArrayToComplexString(array);
-
-            if (HexPrefixEnable.Checked) {
-                if (DisplayAsHex.Checked)
-                    Content.AppendText(hexStr, Color.Green);
-                else
-                    Content.AppendText(complexStr, Color.Green);
-            }
-            else {
-                if (DisplayAsHex.Checked)
-                    Content.AppendText(StringToHexString(text), Color.Green);
-                else {
-                    Content.AppendText(text, Color.Green);
-                }
-            }
-
-            if (portB.IsOpen)
-                portB.BaseStream.Write(array, 0, array.Length);
+            //if (portB.IsOpen)
+            //    portB.BaseStream.Write(array, 0, array.Length);
 
             ScrollToLast();
         }
@@ -511,8 +384,12 @@ namespace IndirectSerial {
             AOpen.Enabled = true;
             ABaud.Enabled = true;
             AClose.Enabled = false;
+            AutoReconnectA.Checked = false;
 
-            if (portA.IsOpen) portA.Close();
+            if (portA.IsOpen) {
+                portA.Close();
+                ConcatMessage(String.Format("{0} closed", portA.PortName));
+            }
         }
 
         private void ABaud_SelectedIndexChanged(Object sender, EventArgs e) => portA.BaudRate = Int32.Parse(ABaud.Text);
@@ -522,6 +399,9 @@ namespace IndirectSerial {
         private void ARts_CheckedChanged(Object sender, EventArgs e) => portA.RtsEnable = ARts.Checked;
 
         private void AOpen_Click(Object sender, EventArgs e) {
+            ConcatMessage(String.Format("opening {0}...", APortList.Text));
+            fctb.Refresh();
+
             try {
                 if (portA.IsOpen) portA.Close();
                 portA.PortName = APortList.Text;
@@ -529,9 +409,10 @@ namespace IndirectSerial {
                 AOpen.Enabled = false;
                 ABaud.Enabled = false;
                 AClose.Enabled = true;
+                ConcatMessage(String.Format("{0} opened", portA.PortName));
             }
-            catch (Exception exp) {
-                MessageBox.Show(exp.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            catch (Exception exc) {
+                ConcatMessage(String.Format("cannot open {0}, trace: {1}", portA.PortName, exc.ToString()));
             }
         }
 
@@ -546,6 +427,9 @@ namespace IndirectSerial {
         }
 
         private void BOpen_Click(Object sender, EventArgs e) {
+            ConcatMessage(String.Format("opening {0}...", BPortList.Text));
+            fctb.Refresh();
+
             try {
                 if (portB.IsOpen) portB.Close();
                 portB.PortName = BPortList.Text;
@@ -553,9 +437,10 @@ namespace IndirectSerial {
                 BOpen.Enabled = false;
                 BBaud.Enabled = false;
                 BClose.Enabled = true;
+                ConcatMessage(String.Format("{0} opened", portB.PortName));
             }
-            catch (Exception exp) {
-                MessageBox.Show(exp.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            catch (Exception exc) {
+                ConcatMessage(String.Format("cannot open {0}, trace: {1}", portB.PortName, exc.ToString()));
             }
         }
 
@@ -563,8 +448,12 @@ namespace IndirectSerial {
             BOpen.Enabled = true;
             BBaud.Enabled = true;
             BClose.Enabled = false;
+            AutoReconnectB.Checked = false;
 
-            if (portB.IsOpen) portB.Close();
+            if (portB.IsOpen) {
+                portB.Close();
+                ConcatMessage(String.Format("{0} closed", portB.PortName));
+            }
         }
 
         private void LinkSignal_CheckedChanged(Object sender, EventArgs e) {
@@ -610,7 +499,7 @@ namespace IndirectSerial {
 
         private void LinkData_CheckedChanged(Object sender, EventArgs e) => linkedData = LinkData.Checked;
 
-        private void ClearDisplay_Click(Object sender, EventArgs e) => Content.Clear();
+        private void ClearDisplay_Click(Object sender, EventArgs e) => fctb.Clear();
 
         private void BSend_Click(Object sender, EventArgs e) => BParseAndSend(BInput.Text);
 
