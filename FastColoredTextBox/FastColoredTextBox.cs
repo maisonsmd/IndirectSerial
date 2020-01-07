@@ -1348,7 +1348,7 @@ namespace FastColoredTextBoxNS
         /// Gets or sets char and styleId for given place
         /// This property does not fire OnTextChanged event
         /// </summary>
-        public Char this[Place place]
+        public StyledChar this[Place place]
         {
             get { return lines[place.iLine][place.iChar]; }
             set { lines[place.iLine][place.iChar] = value; }
@@ -6356,7 +6356,7 @@ namespace FastColoredTextBoxNS
             if (iLine < 0 || iLine >= lines.Count)
                 throw new ArgumentOutOfRangeException("Line index out of range");
             var sb = new StringBuilder(lines[iLine].Count);
-            foreach (Char c in lines[iLine])
+            foreach (StyledChar c in lines[iLine])
                 sb.Append(c.c);
             return sb.ToString();
         }

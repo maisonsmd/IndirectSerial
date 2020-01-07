@@ -379,7 +379,7 @@ namespace FastColoredTextBoxNS
             }
 
             foreach (var c in s)
-                line.Add(new Char(c));
+                line.Add(new StyledChar(c));
             base.lines[i] = line;
 
             if (CurrentTB.WordWrap)

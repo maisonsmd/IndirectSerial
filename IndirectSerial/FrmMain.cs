@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FastColoredTextBoxNS;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -14,51 +15,70 @@ using System.Windows.Forms;
 namespace IndirectSerial {
 
     public partial class FrmMain : Form {
-        private SerialPort portA = new SerialPort { BaudRate = 115200 }, portB = new SerialPort { BaudRate = 115200 };
+        private SerialPort portA = new SerialPort { BaudRate = 115200, PortName = "unknown" }, portB = new SerialPort { BaudRate = 115200, PortName = "unknown" };
+        private FastColoredTextBoxNS.AutocompleteMenu a_inputPopup, b_inputPopup;
+        private List<FastColoredTextBoxNS.AutocompleteItem> autoCompleteList = new List<FastColoredTextBoxNS.AutocompleteItem>();
+        private StringTextSource outputTextSource;
+        private String outputText = "Nothing";
+        private TextStyle timestampStyle = new TextStyle(Brushes.Gray, null, FontStyle.Regular);
+        private TextStyle directionStyle = new TextStyle(Brushes.LightGray, null, FontStyle.Regular);
+        private TextStyle aSourceStyle = new TextStyle(Brushes.Red, null, FontStyle.Regular);
+        private TextStyle bSourceStyle = new TextStyle(Brushes.DodgerBlue, null, FontStyle.Regular);
+        private TextStyle pcSourceStyle = new TextStyle(Brushes.Orange, null, FontStyle.Regular);
+        private TextStyle spaceStyle = new TextStyle(Brushes.LightGray, null, FontStyle.Regular);
+        private Style invisibleCharsStyle = new InvisibleCharsRenderer(Pens.LightGray);
 
         private UInt64 timeout = 100;
+        private UInt32 newlineBytes = 16;
 
         private Timer dataTimer = new Timer { Interval = 5 };
         private Timer signalTimer = new Timer { Interval = 5 };
         private Timer portSearchTimer = new Timer { Interval = 1000 };
 
         private List<String> oldPortList = new List<String>();
-
-        private UInt32 aLineBytes = 0, bLineBytes;
-        private Boolean aPrintedHeader = false, bPrintedHeader = false;
         private UInt64 lastPrint_ms;
-        private Boolean printingA = true;
-        private Boolean printingB = false;
-
+        private Boolean endedWithNewline = true;
         private volatile List<Byte> AReceivedBytes = new List<Byte>(), BReceivedBytes = new List<Byte>();
-        private UInt32 newlineBytes = 16;
-
         private Stopwatch millisSw = new Stopwatch();
-
         private volatile Boolean lastADsr, lastACts, lastBDsr, lastBCts;
         private Boolean linkedSignal = false, linkedData = false;
 
         public FrmMain() {
             InitializeComponent();
-            ABaud.Text = portA.BaudRate.ToString();
-            ADtr.Checked = portA.DtrEnable;
-            ARts.Checked = portA.RtsEnable;
-            BBaud.Text = portB.BaudRate.ToString();
-            BDtr.Checked = portA.DtrEnable;
-            BRts.Checked = portA.RtsEnable;
 
-            APortList_DropDown(null, null);
-            BPortList_DropDown(null, null);
-            if (APortList.Items.Count > 0)
-                APortList.SelectedIndex = 0;
-            if (BPortList.Items.Count > 0)
-                BPortList.SelectedIndex = 0;
+            a_inputPopup = new FastColoredTextBoxNS.AutocompleteMenu(a_tbInput) {
+                MinFragmentLength = 1,
+                SearchPattern = ".+"
+            };
 
-            LinkSignal.Checked = linkedSignal;
-            LinkData.Checked = linkedData;
+            //set words as autocomplete source
+            a_inputPopup.Items.SetAutocompleteItems(autoCompleteList);
+            a_inputPopup.Items.MaximumSize = new Size(800, 300);
+            a_inputPopup.Items.Width = 500;
+            a_inputPopup.SelectedColor = Color.SkyBlue;
+            a_inputPopup.Items.Font = new Font("Consolas", 12);
+            a_inputPopup.AppearInterval = 50;
 
-            TimeoutNewlineCount.Text = timeout.ToString();
-            BytesNewlineCount.Text = newlineBytes.ToString();
+            a_cbBaudList.Text = portA.BaudRate.ToString();
+            a_cbDtr.Checked = portA.DtrEnable;
+            a_cbRts.Checked = portA.RtsEnable;
+            b_cbBaudList.Text = portB.BaudRate.ToString();
+            b_cbDtr.Checked = portA.DtrEnable;
+            b_cbRts.Checked = portA.RtsEnable;
+
+            a_portList_DropDown(null, null);
+            b_cbPortList_DropDown(null, null);
+            if (a_cbPortList.Items.Count > 0)
+                a_cbPortList.SelectedIndex = 0;
+            if (b_cbPortList.Items.Count > 0)
+                b_cbPortList.SelectedIndex = 0;
+
+            //outputTextSource = new StringTextSource(tbOutput);
+            //outputTextSource.OpenString(outputText);
+            //tbOutput.TextSource = outputTextSource;
+
+            tbTimeoutNewline.Text = timeout.ToString();
+            tbBytesNewline.Text = newlineBytes.ToString();
 
             millisSw.Start();
 
@@ -77,38 +97,38 @@ namespace IndirectSerial {
                 if (aDsr != lastADsr) {
                     if (portB.IsOpen && linkedSignal) {
                         portB.DtrEnable = aDsr;
-                        BDtr.Checked = aDsr;
+                        b_cbDtr.Checked = aDsr;
                     }
 
                     lastADsr = aDsr;
-                    ADsr.Checked = aDsr;
+                    a_cbDsr.Checked = aDsr;
                 }
                 if (aCts != lastACts) {
                     if (portB.IsOpen && linkedSignal) {
                         portB.RtsEnable = aCts;
-                        BRts.Checked = aCts;
+                        b_cbRts.Checked = aCts;
                     }
 
                     lastACts = aCts;
-                    ACts.Checked = aCts;
+                    a_cbCts.Checked = aCts;
                 }
                 if (bDsr != lastBDsr) {
                     if (portA.IsOpen && linkedSignal) {
                         portA.DtrEnable = bDsr;
-                        ADtr.Checked = bDsr;
+                        a_cbDtr.Checked = bDsr;
                     }
 
                     lastBDsr = bDsr;
-                    BDsr.Checked = bDsr;
+                    b_cbDsr.Checked = bDsr;
                 }
                 if (bCts != lastBCts) {
                     if (portA.IsOpen && linkedSignal) {
                         portA.RtsEnable = bCts;
-                        ARts.Checked = bCts;
+                        a_cbRts.Checked = bCts;
                     }
 
                     lastBCts = bCts;
-                    BCts.Checked = bCts;
+                    b_cbCts.Checked = bCts;
                 }
             };
 
@@ -120,12 +140,12 @@ namespace IndirectSerial {
                 List<String> newRemovedPorts = currentPortsList != null ? oldPortList.Except(currentPortsList).ToList() : new List<String>();
 
                 if (newPluggedPorts.Any()) {
-                    PortsPlugged(newPluggedPorts);
+                    portsPlugged(newPluggedPorts);
                     //Invoke((MethodInvoker)delegate {
                     //});
                 }
                 if (newRemovedPorts.Any()) {
-                    PortsUnplugged(newRemovedPorts);
+                    portsUnplugged(newRemovedPorts);
                     //Invoke((MethodInvoker)delegate {
                     //});
                 }
@@ -140,15 +160,42 @@ namespace IndirectSerial {
             portSearchTimer.Start();
         }
 
-        private void ConcatMessage(String message) {
-            fctb.BeginUpdate();
-            fctb.TextSource.CurrentTB = fctb;
-            fctb.AppendText(message + "\n");
-            fctb.GoEnd();
-            fctb.EndUpdate();
+        private void concatMessage(String message) {
+            //message = message.Replace(" ", "•");
+            //some stuffs for best performance
+            tbOutput.BeginUpdate();
+            tbOutput.Selection.BeginUpdate();
+            //remember user selection
+            Range userSelection = tbOutput.Selection.Clone();
+            //add text with predefined style
+            tbOutput.TextSource.CurrentTB = tbOutput;
+            tbOutput.AppendText(message + "\n");
+            //restore user selection
+            if (!userSelection.IsEmpty || userSelection.Start.iLine < tbOutput.LinesCount - 2) {
+                tbOutput.Selection.Start = userSelection.Start;
+                tbOutput.Selection.End = userSelection.End;
+            }
+            else
+                tbOutput.GoEnd();//scroll to end of the
+            tbOutput.Selection.EndUpdate();
+
+            tbOutput.GoEnd();//scroll to end of the text
+            tbOutput.EndUpdate();
+
+            //tbOutput.BeginUpdate();
+            //tbOutput.TextSource.CurrentTB = tbOutput;
+            //tbOutput.AppendText(message + "\n");
+            //tbOutput.GoEnd();
+            //tbOutput.EndUpdate();
+
+            //outputText += message + "\n";
+            ////outputTextSource.Clear();
+            ////outputTextSource.OpenString(outputText);
+            //tbOutput.Text = outputText;
+            //tbOutput.Invalidate();
         }
 
-        private void PortsPlugged(List<String> names) {
+        private void portsPlugged(List<String> names) {
             Console.WriteLine("Plugged: " + String.Join(",", names));
 
             String aName = portA.PortName;
@@ -156,85 +203,60 @@ namespace IndirectSerial {
 
             if (aName != String.Empty
                 && names.Contains(aName)
-                && AutoReconnectA.Checked) {
+                && a_cbAutoReconnect.Checked) {
                 try {
                     try {
-                        ConcatMessage(String.Format("opening {0}...", aName));
-                        APortList.Text = aName;
-                        fctb.Refresh();
+                        concatMessage(String.Format("opening {0}...", aName));
+                        a_cbPortList.Text = aName;
+                        tbOutput.Refresh();
 
                         portA.Open();
-                        AOpen.Enabled = false;
-                        ABaud.Enabled = false;
-                        AClose.Enabled = true;
+                        a_btOpen.Enabled = false;
+                        a_cbBaudList.Enabled = false;
+                        //AClose.Enabled = true;
 
-                        ConcatMessage(String.Format("{0} opened", aName));
+                        concatMessage(String.Format("{0} opened", aName));
                     }
                     catch (Exception exc) {
-                        ConcatMessage(String.Format("cannot open {0}, trace: {1}", portA.PortName, exc.ToString()));
+                        concatMessage(String.Format("cannot open {0}, trace: {1}", portA.PortName, exc.ToString()));
                     }
                 }
                 catch (Exception e) {
-                    ConcatMessage(String.Format("cannot open {0}, trace: {1}", aName, e.ToString()));
+                    concatMessage(String.Format("cannot open {0}, trace: {1}", aName, e.ToString()));
                 }
             }
             if (bName != String.Empty
                 && names.Contains(bName)
-                && AutoReconnectB.Checked) {
+                && b_cbAutoReconnect.Checked) {
                 try {
-                    ConcatMessage(String.Format("opening {0}...", bName));
-                    BPortList.Text = bName;
-                    fctb.Refresh();
+                    concatMessage(String.Format("opening {0}...", bName));
+                    b_cbPortList.Text = bName;
+                    tbOutput.Refresh();
 
                     portB.Open();
-                    BOpen.Enabled = false;
-                    BBaud.Enabled = false;
-                    BClose.Enabled = true;
-                    ConcatMessage(String.Format("{0} opened", bName));
+                    b_btConnect.Enabled = false;
+                    b_cbBaudList.Enabled = false;
+                    //BClose.Enabled = true;
+                    concatMessage(String.Format("{0} opened", bName));
                 }
                 catch (Exception e) {
-                    ConcatMessage(String.Format("cannot open {0}, trace: {1}", bName, e.ToString()));
+                    concatMessage(String.Format("cannot open {0}, trace: {1}", bName, e.ToString()));
                 }
             }
         }
 
-        private void PortsUnplugged(List<String> names) {
-            Console.WriteLine("Removed: " + String.Join(",", names));
+        private void portsUnplugged(List<String> names) => Console.WriteLine("Removed: " + String.Join(",", names));//if (names.Contains(portA.PortName) && AClose.Enabled) {//    AOpen.Enabled = true;//    ABaud.Enabled = true;//    AClose.Enabled = false;//    portA.Close();//    ConcatMessage(String.Format("{0} closed", portA.PortName));//}//if (names.Contains(portB.PortName) && BClose.Enabled) {//    BOpen.Enabled = true;//    BBaud.Enabled = true;//    BClose.Enabled = false;//    portB.Close();//    ConcatMessage(String.Format("{0} closed", portB.PortName));//}
 
-            if (names.Contains(portA.PortName) && AClose.Enabled) {
-                AOpen.Enabled = true;
-                ABaud.Enabled = true;
-                AClose.Enabled = false;
+        private String getTimeString() => DateTime.Now.ToString("HH:mm:ss.fff");
 
-                portA.Close();
-                ConcatMessage(String.Format("{0} closed", portA.PortName));
-            }
-            if (names.Contains(portB.PortName) && BClose.Enabled) {
-                BOpen.Enabled = true;
-                BBaud.Enabled = true;
-                BClose.Enabled = false;
-
-                portB.Close();
-                ConcatMessage(String.Format("{0} closed", portB.PortName));
-            }
-        }
-
-        private void ScrollToLast() {
-            if (Autoscroll.Checked) {
-            }
-        }
-
-        private String GetTimeString() => DateTime.Now.ToString("HH:mm:ss.fff");
-
-        private Byte[] HexStringToArray(String text) {
+        private Byte[] hexStringToArray(String text) {
             List<Byte> args = new List<Byte>();
             List<Byte> output = new List<Byte>();
 
-            String prefix = Prefix.Text;
+            String prefix = tbHexPrefix.Text;
 
-            String rgx = $"{prefix}[0-9A-F]{{1,2}}";
             //MatchCollection match = Regex.Matches(text, "h[0-9A-F]{1,2}\\s?"); // include space
-            MatchCollection matches = Regex.Matches(text, rgx);
+            MatchCollection matches = Regex.Matches(text, $"{prefix}[0-9A-F]{{1,2}}");
 
             for (Int32 i = 0; i < matches.Count; ++i) {
                 Byte c = Byte.Parse(Regex.Match(matches[i].ToString(), "[0-9A-F]{1,2}").Value, System.Globalization.NumberStyles.HexNumber);
@@ -249,7 +271,7 @@ namespace IndirectSerial {
             return output.ToArray();
         }
 
-        private String StringToHexString(String text) {
+        private String stringToHexString(String text) {
             String output = String.Empty;
             for (Int32 i = 0; i < text.Length; ++i) {
                 output += String.Format("{0:X2}", (Byte)text[i]);
@@ -258,7 +280,7 @@ namespace IndirectSerial {
             return output;
         }
 
-        private String HexArrayToHexString(Byte[] array) {
+        private String hexArrayToHexString(Byte[] array) {
             String output = String.Empty;
             for (Int32 i = 0; i < array.Length; ++i) {
                 output += String.Format("{0:X2}", array[i]);
@@ -267,7 +289,7 @@ namespace IndirectSerial {
             return output;
         }
 
-        private String HexArrayToComplexString(Byte[] array) {
+        private String hexArrayToComplexString(Byte[] array) {
             String output = String.Empty;
             for (Int32 i = 0; i < array.Length; ++i) {
                 if (array[i] >= 0x20 && array[i] < 0x7E)
@@ -279,185 +301,160 @@ namespace IndirectSerial {
             return output;
         }
 
-        private void TimeoutNewlineCount_KeyDown(Object sender, KeyEventArgs e) {
+        private void tbTimeoutNewline_KeyDown(Object sender, KeyEventArgs e) {
             if (e.KeyCode != Keys.Enter)
                 return;
-            if (UInt64.TryParse(TimeoutNewlineCount.Text, out UInt64 value)) {
+            if (UInt64.TryParse(tbTimeoutNewline.Text, out UInt64 value)) {
                 if (value < 10) value = 10;
                 timeout = value;
-                TimeoutNewlineCount.Text = timeout.ToString();
+                tbTimeoutNewline.Text = timeout.ToString();
             }
         }
 
-        private void BytesNewlineCount_KeyDown(Object sender, KeyEventArgs e) {
+        private void tbBytesNewline_KeyDown(Object sender, KeyEventArgs e) {
             if (e.KeyCode != Keys.Enter)
                 return;
-            if (UInt32.TryParse(BytesNewlineCount.Text, out UInt32 value)) {
+            if (UInt32.TryParse(tbBytesNewline.Text, out UInt32 value)) {
                 if (value < 2) value = 2;
                 newlineBytes = value;
-                BytesNewlineCount.Text = newlineBytes.ToString();
+                tbBytesNewline.Text = newlineBytes.ToString();
             }
         }
 
-        #region Port A methods
+        private void a_parseAndSend(String text) {
+            //if (!AInput.Items.Contains(text))
+            //    AInput.Items.Add(AInput.Text);
 
-        private void AInput_KeyDown(Object sender, KeyEventArgs e) {
-            if (e.KeyCode != Keys.Enter)
-                return;
-            String text = AInput.Text;
-            AParseAndSend(text);
+            concatMessage(text);
+            lastPrint_ms = (UInt64)millisSw.ElapsedMilliseconds;// Content.AppendText("\n");//if (!Content.Text.EndsWith("\n"))//    Content.AppendText("\n");//if (Timestamp.Checked)//    Content.AppendText($"{GetTimeString()} ", Color.Gray);//Content.AppendText("PC->A ", Color.DarkGray);//if (AppendNewlineEnable.Checked && !text.EndsWith("\n"))//    text += "\n";//Byte[] array = HexStringToArray(text);//String hexStr = HexArrayToHexString(array);//String complexStr = HexArrayToComplexString(array);//if (HexPrefixEnable.Checked) {//    if (DisplayAsHex.Checked)//        Content.AppendText(hexStr, Color.Green);//    else//        Content.AppendText(complexStr, Color.Green);//}//else {//    if (DisplayAsHex.Checked)//        Content.AppendText(StringToHexString(text), Color.Green);//    else {//        Content.AppendText(text, Color.Green);//    }//}//if (portA.IsOpen)//    portA.BaseStream.Write(array, 0, array.Length);
         }
 
-        private void ASend_Click(Object sender, EventArgs e) => AParseAndSend(AInput.Text);
-
-        private void AParseAndSend(String text) {
-            printingA = false;
-            printingB = false;
-
-            if (!AInput.Items.Contains(text))
-                AInput.Items.Add(AInput.Text);
-
-            lastPrint_ms = (UInt64)millisSw.ElapsedMilliseconds;
-
-            // Content.AppendText("\n");
-            aLineBytes = 0;
-            bLineBytes = 0;
-            aPrintedHeader = false;
-            bPrintedHeader = false;
-
-            //if (!Content.Text.EndsWith("\n"))
-            //    Content.AppendText("\n");
-
-            //if (Timestamp.Checked)
-            //    Content.AppendText($"{GetTimeString()} ", Color.Gray);
-            //Content.AppendText("PC->A ", Color.DarkGray);
-
-            //if (AppendNewlineEnable.Checked && !text.EndsWith("\n"))
-            //    text += "\n";
-
-            //Byte[] array = HexStringToArray(text);
-            //String hexStr = HexArrayToHexString(array);
-            //String complexStr = HexArrayToComplexString(array);
-
-            //if (HexPrefixEnable.Checked) {
-            //    if (DisplayAsHex.Checked)
-            //        Content.AppendText(hexStr, Color.Green);
-            //    else
-            //        Content.AppendText(complexStr, Color.Green);
-            //}
-            //else {
-            //    if (DisplayAsHex.Checked)
-            //        Content.AppendText(StringToHexString(text), Color.Green);
-            //    else {
-            //        Content.AppendText(text, Color.Green);
-            //    }
-            //}
-
-            //if (portA.IsOpen)
-            //    portA.BaseStream.Write(array, 0, array.Length);
-
-            ScrollToLast();
+        private void b_parseAndSend(String text) {
         }
 
-        private void BParseAndSend(String text) {
-            printingA = false;
-            printingB = false;
-
-            if (!BInput.Items.Contains(text))
-                BInput.Items.Add(BInput.Text);
-
-            //if (portB.IsOpen)
-            //    portB.BaseStream.Write(array, 0, array.Length);
-
-            ScrollToLast();
-        }
-
-        private void AClearHistory_Click(Object sender, EventArgs e) => AInput.Items.Clear();
-
-        private void APortList_DropDown(Object sender, EventArgs e) {
+        private void a_portList_DropDown(Object sender, EventArgs e) {
             String[] ports = SerialPort.GetPortNames();
-            APortList.Items.Clear();
-            APortList.Items.AddRange(ports);
+            a_cbPortList.Items.Clear();
+            a_cbPortList.Items.AddRange(ports);
         }
 
-        private void AClose_Click(Object sender, EventArgs e) {
-            AOpen.Enabled = true;
-            ABaud.Enabled = true;
-            AClose.Enabled = false;
-            AutoReconnectA.Checked = false;
+        private void a_cbBaudList_SelectedIndexChanged(Object sender, EventArgs e) => portA.BaudRate = Int32.Parse(a_cbBaudList.Text);
 
-            if (portA.IsOpen) {
-                portA.Close();
-                ConcatMessage(String.Format("{0} closed", portA.PortName));
-            }
-        }
+        private void a_cbDtr_CheckedChanged(Object sender, EventArgs e) => portA.DtrEnable = a_cbDtr.Checked;
 
-        private void ABaud_SelectedIndexChanged(Object sender, EventArgs e) => portA.BaudRate = Int32.Parse(ABaud.Text);
+        private void a_cbRts_CheckedChanged(Object sender, EventArgs e) => portA.RtsEnable = a_cbRts.Checked;
 
-        private void ADtr_CheckedChanged(Object sender, EventArgs e) => portA.DtrEnable = ADtr.Checked;
-
-        private void ARts_CheckedChanged(Object sender, EventArgs e) => portA.RtsEnable = ARts.Checked;
-
-        private void AOpen_Click(Object sender, EventArgs e) {
-            ConcatMessage(String.Format("opening {0}...", APortList.Text));
-            fctb.Refresh();
+        private void a_btConnect_Click(Object sender, EventArgs e) {
+            concatMessage(String.Format("opening {0}...", a_cbPortList.Text));
+            tbOutput.Refresh();
 
             try {
                 if (portA.IsOpen) portA.Close();
-                portA.PortName = APortList.Text;
+                portA.PortName = a_cbPortList.Text;
                 portA.Open();
-                AOpen.Enabled = false;
-                ABaud.Enabled = false;
-                AClose.Enabled = true;
-                ConcatMessage(String.Format("{0} opened", portA.PortName));
+                a_btOpen.Enabled = false;
+                a_cbBaudList.Enabled = false;
+                concatMessage(String.Format("{0} opened", portA.PortName));
             }
             catch (Exception exc) {
-                ConcatMessage(String.Format("cannot open {0}, trace: {1}", portA.PortName, exc.ToString()));
+                concatMessage(String.Format("cannot open {0}, trace: {1}", portA.PortName, exc.ToString()));
             }
         }
 
-        #endregion Port A methods
-
-        #region Port B methods
-
-        private void BPortList_DropDown(Object sender, EventArgs e) {
-            String[] ports = SerialPort.GetPortNames();
-            BPortList.Items.Clear();
-            BPortList.Items.AddRange(ports);
+        private void clearHistoryToolStripMenuItem_Click(Object sender, EventArgs e) {
+            ToolStripItem item = (sender as ToolStripItem);
+            //if (item.GetParrentControl().Equals(inputA)) {
+            //    inputA.AutoCompleteCustomSource.Clear();
+            //}
+            //if (item.GetParrentControl().Equals(inputB)) {
+            //    inputB.AutoCompleteCustomSource.Clear();
+            //}
         }
 
-        private void BOpen_Click(Object sender, EventArgs e) {
-            ConcatMessage(String.Format("opening {0}...", BPortList.Text));
-            fctb.Refresh();
+        private void clearToolStripMenuItem_Click(Object sender, EventArgs e) {
+            ToolStripItem item = (sender as ToolStripItem);
+            //if (item.GetParrentControl().Equals(inputA)) {
+            //    inputA.Clear();
+            //}
+            //if (item.GetParrentControl().Equals(inputB)) {
+            //    inputB.Clear();
+            //}
+        }
+
+        private void b_cbPortList_DropDown(Object sender, EventArgs e) {
+            String[] ports = SerialPort.GetPortNames();
+            b_cbPortList.Items.Clear();
+            b_cbPortList.Items.AddRange(ports);
+        }
+
+        private void tbOutput_VisibleRangeChanged(Object sender, EventArgs e) {
+            Range range = tbOutput.VisibleRange;
+            range.ClearStyle(StyleIndex.All);
+            tbOutput.VisibleRange.SetStyle(timestampStyle, @"[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} ", RegexOptions.Singleline);
+            tbOutput.VisibleRange.SetStyle(directionStyle, @"(A |B |PC)->(A  |B  |PC )", RegexOptions.Singleline);
+            tbOutput.VisibleRange.SetStyle(pcSourceStyle, @"(?<=PC->A  |PC->B  ).+?(?=([0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} )|(A |B |PC)->(A  |B  |PC )|$)", RegexOptions.Singleline);
+            tbOutput.VisibleRange.SetStyle(aSourceStyle, @"(?<=A ->B  |A ->PC ).+?(?=([0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} )|(A |B |PC)->(A  |B  |PC )|$)", RegexOptions.Singleline);
+            tbOutput.VisibleRange.SetStyle(bSourceStyle, @"(?<=B ->A  |B ->PC ).+?(?=([0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} )|(A |B |PC)->(A  |B  |PC )|$)", RegexOptions.Singleline);
+
+            tbOutput.Range.ClearStyle(invisibleCharsStyle);
+            tbOutput.Range.SetStyle(invisibleCharsStyle, @".$|.\r\n|\s");
+        }
+
+        private void tbOutput_AutoIndentNeeded(Object sender, AutoIndentEventArgs e) {
+            /*Boolean hasHeader = Regex.IsMatch(e.LineText, @"^\s*(([0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3})|((A |B |PC)->(A  |B  |PC ))).+");
+            if (!hasHeader)
+                e.AbsoluteIndentation = 20;
+            else
+                e.AbsoluteIndentation = 0;*/
+        }
+
+        private void b_btConnect_Click(Object sender, EventArgs e) {
+            concatMessage(String.Format("opening {0}...", b_cbPortList.Text));
+            tbOutput.Refresh();
 
             try {
                 if (portB.IsOpen) portB.Close();
-                portB.PortName = BPortList.Text;
+                portB.PortName = b_cbPortList.Text;
                 portB.Open();
-                BOpen.Enabled = false;
-                BBaud.Enabled = false;
-                BClose.Enabled = true;
-                ConcatMessage(String.Format("{0} opened", portB.PortName));
+                b_btConnect.Enabled = false;
+                b_cbBaudList.Enabled = false;
+                concatMessage(String.Format("{0} opened", portB.PortName));
             }
             catch (Exception exc) {
-                ConcatMessage(String.Format("cannot open {0}, trace: {1}", portB.PortName, exc.ToString()));
+                concatMessage(String.Format("cannot open {0}, trace: {1}", portB.PortName, exc.ToString()));
             }
         }
 
-        private void BClose_Click(Object sender, EventArgs e) {
-            BOpen.Enabled = true;
-            BBaud.Enabled = true;
-            BClose.Enabled = false;
-            AutoReconnectB.Checked = false;
+        private void a_tbInput_KeyDown(Object sender, KeyEventArgs e) {
+            if (e.Modifiers == Keys.Control && e.KeyCode == Keys.Return) {
+                String text = a_tbInput.Text;
 
-            if (portB.IsOpen) {
-                portB.Close();
-                ConcatMessage(String.Format("{0} closed", portB.PortName));
+                a_parseAndSend(text);
+                FastColoredTextBoxNS.AutocompleteItem item = new FastColoredTextBoxNS.AutocompleteItem(text);
+                if (!autoCompleteList.ToStringList().Contains(text)) {
+                    if (text.Length > 30) {
+                        String textLimited = text.Length > 1024 ? text.Substring(0, 1024) : text;
+                        item.ToolTipText = textLimited;
+                        item.ToolTipTitle = "Full text";
+
+                        text = text.Substring(0, 30);
+                    }
+
+                    text = text.Replace("\r\n", " ");
+                    text = text.Replace("\n", " ");
+
+                    autoCompleteList.Add(item);
+
+                    a_inputPopup.Items.SetAutocompleteItems(autoCompleteList);
+                }
+
+                a_tbInput.Text = String.Empty;
+                e.Handled = true;
             }
         }
 
-        private void LinkSignal_CheckedChanged(Object sender, EventArgs e) {
-            linkedSignal = LinkSignal.Checked;
+        private void btLinkSignal_CheckedChanged(Object sender, EventArgs e) {
+            //linkedSignal = btLink.Checked;
 
             Boolean aCts = portA.IsOpen ? portA.CtsHolding : false,
             aDsr = portA.IsOpen ? portA.DsrHolding : false,
@@ -466,59 +463,43 @@ namespace IndirectSerial {
 
             if (portB.IsOpen && linkedSignal) {
                 portB.DtrEnable = aDsr;
-                BDtr.Checked = aDsr;
+                b_cbDtr.Checked = aDsr;
             }
 
             lastADsr = aDsr;
-            ADsr.Checked = aDsr;
+            a_cbDsr.Checked = aDsr;
 
             if (portB.IsOpen && linkedSignal) {
                 portB.RtsEnable = aCts;
-                BRts.Checked = aCts;
+                b_cbRts.Checked = aCts;
             }
 
             lastACts = aCts;
-            ACts.Checked = aCts;
+            a_cbCts.Checked = aCts;
 
             if (portA.IsOpen && linkedSignal) {
                 portA.DtrEnable = bDsr;
-                ADtr.Checked = bDsr;
+                a_cbDtr.Checked = bDsr;
             }
 
             lastBDsr = bDsr;
-            BDsr.Checked = bDsr;
+            b_cbDsr.Checked = bDsr;
 
             if (portA.IsOpen && linkedSignal) {
                 portA.RtsEnable = bCts;
-                ARts.Checked = bCts;
+                a_cbRts.Checked = bCts;
             }
 
             lastBCts = bCts;
-            BCts.Checked = bCts;
+            b_cbCts.Checked = bCts;
         }
 
-        private void LinkData_CheckedChanged(Object sender, EventArgs e) => linkedData = LinkData.Checked;
+        private void btLinkData_CheckedChanged(Object sender, EventArgs e) => tbOutput.DoAutoIndent();
 
-        private void ClearDisplay_Click(Object sender, EventArgs e) => fctb.Clear();
+        private void b_cbDtr_CheckedChanged(Object sender, EventArgs e) => portB.DtrEnable = b_cbDtr.Checked;
 
-        private void BSend_Click(Object sender, EventArgs e) => BParseAndSend(BInput.Text);
+        private void b_cbRts_CheckedChanged(Object sender, EventArgs e) => portB.RtsEnable = b_cbRts.Checked;
 
-        private void BClearHistory_Click(Object sender, EventArgs e) => BInput.Items.Clear();
-
-        private void BDtr_CheckedChanged(Object sender, EventArgs e) => portB.DtrEnable = BDtr.Checked;
-
-        private void BInput_KeyDown(Object sender, KeyEventArgs e) {
-            if (e.KeyCode != Keys.Enter)
-                return;
-
-            String text = BInput.Text;
-            BParseAndSend(text);
-        }
-
-        private void BRts_CheckedChanged(Object sender, EventArgs e) => portB.RtsEnable = BRts.Checked;
-
-        private void BBaud_SelectedIndexChanged(Object sender, EventArgs e) => portB.BaudRate = Int32.Parse(BBaud.Text);
-
-        #endregion Port B methods
+        private void b_cbBaudList_SelectedIndexChanged(Object sender, EventArgs e) => portB.BaudRate = Int32.Parse(b_cbBaudList.Text);
     }
 }

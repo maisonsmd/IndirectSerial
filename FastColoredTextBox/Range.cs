@@ -815,7 +815,7 @@ namespace FastColoredTextBoxNS
                 int toX = y == toLine ? Math.Min(toChar - 1, tb[y].Count - 1) : tb[y].Count - 1;
                 for (int x = fromX; x <= toX; x++)
                 {
-                    Char c = tb[y][x];
+                    StyledChar c = tb[y][x];
                     c.style |= styleIndex;
                     tb[y][x] = c;
                 }
@@ -1045,7 +1045,7 @@ namespace FastColoredTextBoxNS
                 int toX = y == toLine ? Math.Min(toChar - 1, tb[y].Count - 1) : tb[y].Count - 1;
                 for (int x = fromX; x <= toX; x++)
                 {
-                    Char c = tb[y][x];
+                    StyledChar c = tb[y][x];
                     c.style &= ~styleIndex;
                     tb[y][x] = c;
                 }
@@ -1166,7 +1166,7 @@ namespace FastColoredTextBoxNS
         /// <summary>
         /// Chars of range (exclude \n)
         /// </summary>
-        public IEnumerable<Char> Chars
+        public IEnumerable<StyledChar> Chars
         {
             get
             {
@@ -1487,7 +1487,7 @@ namespace FastColoredTextBoxNS
                         }
                     }
                     else
-                        foreach (Char c in Chars)
+                        foreach (StyledChar c in Chars)
                             if ((c.style & si) != 0)//found char with ReadonlyStyle
                                 return true;
                 }
